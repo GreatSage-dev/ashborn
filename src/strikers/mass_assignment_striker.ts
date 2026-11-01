@@ -1,4 +1,5 @@
 import { DiscoveredEndpoint, ExploitCandidate } from '../types.js';
+import { REALISTIC_BROWSER_HEADERS } from './idor_striker.js';
 
 export interface MassAssignmentPayloadConfig {
   privilegedKeys?: Record<string, unknown>;
@@ -54,9 +55,9 @@ export class MassAssignmentStriker {
         targetUrl: fullUrl,
         method: endpoint.method,
         headers: {
+          ...REALISTIC_BROWSER_HEADERS,
           'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
-          'User-Agent': 'Ashborn-Security-Auditor/1.0 (Authorized Property Assignment Check)',
         },
         body: JSON.stringify(privilegedPayload),
         expectedLeakFragment: '"role":"admin"',

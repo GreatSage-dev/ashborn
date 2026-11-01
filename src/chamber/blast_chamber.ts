@@ -1,20 +1,28 @@
 import { createHash, randomUUID } from 'crypto';
 import { ExploitCandidate, ChamberExecutionResult, AshbornReceipt } from '../types.js';
+import { SafetyGovernor } from '../governor/safety_governor.js';
 
 export interface ChamberOptions {
   timeoutMs?: number;
+  cadenceDelayMs?: { min: number; max: number };
+  allowedHosts?: string[];
 }
 
 /**
  * THE DETERMINISTIC BLAST CHAMBER
  * The unforgiving judge. Evaluates exploit candidates against live servers
  * and only mints receipts if private data is proven compromised.
+ * Includes rate-limit cadence control with jitter and strict host scope enforcement.
  */
 export class BlastChamber {
   private readonly timeoutMs: number;
+  private readonly cadenceDelayMs?: { min: number; max: number };
+  private readonly allowedHosts?: string[];
 
   constructor(options: ChamberOptions = {}) {
     this.timeoutMs = options.timeoutMs ?? 5000;
+    this.cadenceDelayMs = options.cadenceDelayMs;
+    this.allowedHosts = options.allowedHosts;
   }
 
   /**
@@ -24,6 +32,32 @@ export class BlastChamber {
     result: ChamberExecutionResult;
     receipt: AshbornReceipt | null;
   }> {
+    // 1. DETERMINISTIC RUNTIME SCOPE GOVERNOR: Refuse packet if host is out-of-scope
+    if (this.allowedHosts && !SafetyGovernor.isHostAllowed(candidate.targetUrl, this.allowedHosts)) {
+      return {
+        result: {
+          passed: false,
+          statusCode: 0,
+          latencyMs: 0,
+          bodySnippet: '',
+          dataLeaked: false,
+          verdict: 'REFUTED_SAFE',
+          reason: `LEGAL SAFETY REFUSAL: Target host is OUT OF SCOPE. No network packets transmitted.`,
+        },
+        receipt: null,
+      };
+    }
+
+    // 2. WAF EVASION & RATE CADENCE: Jittered sleep to mimic polite human interactions
+    if (this.cadenceDelayMs && this.cadenceDelayMs.max > 0) {
+      const min = Math.max(0, this.cadenceDelayMs.min);
+      const max = Math.max(min, this.cadenceDelayMs.max);
+      const jitterMs = Math.floor(Math.random() * (max - min + 1)) + min;
+      if (jitterMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, jitterMs));
+      }
+    }
+
     const startTime = performance.now();
 
     const controller = new AbortController();

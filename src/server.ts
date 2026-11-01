@@ -84,11 +84,21 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
     req.on('end', async () => {
       try {
         const payload = JSON.parse(body);
-        const scope: TargetScope = payload.scope || {
-          name: 'Target App',
-          baseUrl: `http://127.0.0.1:${PORT}`,
-          allowedHosts: ['127.0.0.1', 'localhost'],
-          rulesOfEngagement: 'Authorized security assessment',
+        const baseUrl = payload.scope?.baseUrl || `http://127.0.0.1:${PORT}`;
+        let parsedHost = '127.0.0.1';
+        try {
+          parsedHost = new URL(baseUrl).hostname;
+        } catch {}
+
+        const allowedHosts = payload.scope?.allowedHosts && payload.scope.allowedHosts.length > 0
+          ? payload.scope.allowedHosts
+          : [parsedHost, '127.0.0.1', 'localhost'];
+
+        const scope: TargetScope = {
+          name: payload.scope?.name || 'Target App',
+          baseUrl,
+          allowedHosts,
+          rulesOfEngagement: payload.scope?.rulesOfEngagement || 'Authorized security assessment',
         };
 
         const context: DualSessionContext = payload.context || {

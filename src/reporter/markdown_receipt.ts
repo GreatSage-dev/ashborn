@@ -7,29 +7,43 @@ import { AshbornReceipt, FormattedReport } from '../types.js';
 export class ReportGenerator {
   public static generateHackerOneReport(receipt: AshbornReceipt): FormattedReport {
     const isIdor = receipt.vector.startsWith('IDOR');
-    const title = isIdor
-      ? `Broken Object Level Authorization (BOLA/IDOR) on ${new URL(receipt.targetUrl).pathname}`
-      : `Authentication Bypass via JWT Misconfiguration on ${new URL(receipt.targetUrl).pathname}`;
+    const isMassAssignment = receipt.vector === 'MASS_ASSIGNMENT_VIOLATION';
+    const isJwt = receipt.vector.startsWith('JWT');
 
-    const severity = isIdor ? 'HIGH' : 'CRITICAL';
-    const vulnerabilityClass = isIdor 
-      ? 'CWE-639: Authorization Bypass Through User-Controlled Key'
-      : 'CWE-347: Improper Verification of Cryptographic Signature';
+    let title: string;
+    let severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+    let vulnerabilityClass: string;
+    let impact: string;
+    let remediation: string;
+
+    const pathname = new URL(receipt.targetUrl).pathname;
+
+    if (isIdor) {
+      title = `Broken Object Level Authorization (BOLA/IDOR) on ${pathname}`;
+      severity = 'HIGH';
+      vulnerabilityClass = 'CWE-639: Authorization Bypass Through User-Controlled Key';
+      impact = 'An attacker possessing any standard user account can enumerate and extract private records belonging to any other user on the platform without authorization.';
+      remediation = 'Implement strict server-side authorization checks verifying that the authenticated session identity strictly owns the requested resource ID before fulfilling the request.';
+    } else if (isMassAssignment) {
+      title = `Mass Assignment / Broken Object Property Level Authorization on ${pathname}`;
+      severity = 'HIGH';
+      vulnerabilityClass = 'CWE-915: Improperly Controlled Modification of Dynamically-Determined Object Attributes';
+      impact = 'An unprivileged user can modify protected object attributes (such as role or administrative flags) by supplying unexpected keys in state-modifying requests.';
+      remediation = 'Use strict Data Transfer Object (DTO) schema validation or explicit field whitelisting to reject unexpected client-supplied properties.';
+    } else {
+      title = `Authentication Bypass via JWT Misconfiguration on ${pathname}`;
+      severity = 'CRITICAL';
+      vulnerabilityClass = 'CWE-347: Improper Verification of Cryptographic Signature';
+      impact = 'An attacker can forge or tamper with session tokens to bypass authentication and assume administrative privileges across the application.';
+      remediation = 'Ensure the backend JWT library strictly enforces signature verification and explicitly rejects the none algorithm.';
+    }
 
     const stepsToReproduce = [
-      `1. Log in as regular User B (Attacker) and obtain an active session token.`,
-      `2. Identify private resource owned by User A (Victim) with identifier containing fingerprint \`${receipt.leakFingerprint}\`.`,
-      `3. Execute the attached Proof-of-Concept curl command authenticated exclusively with User B's token.`,
-      `4. Observe that the server returns HTTP ${receipt.statusCode} containing User A's private data, demonstrating complete cross-tenant boundary failure.`,
+      `1. Log in as an authenticated user and obtain an active session token.`,
+      `2. Identify the target endpoint at \`${pathname}\`.`,
+      `3. Transmit the attached Proof-of-Concept curl command.`,
+      `4. Observe that the server returns HTTP ${receipt.statusCode} demonstrating unexpected parameter processing or unauthorized access.`,
     ].join('\n');
-
-    const impact = isIdor
-      ? `An attacker possessing any standard user account can enumerate and extract private records belonging to any other user on the platform without authorization.`
-      : `An attacker can forge or tamper with session tokens to bypass authentication and assume administrative privileges across the application.`;
-
-    const remediation = isIdor
-      ? `Implement strict server-side authorization checks verifying that the authenticated session identity strictly owns the requested resource ID before fulfilling the request.`
-      : `Ensure the backend JWT library strictly enforces signature verification and explicitly rejects the 'none' algorithm.`;
 
     const summary = `During an authorized security assessment, an automated audit by Ashborn verified an unauthenticated cross-tenant data leak on endpoint \`${receipt.targetUrl}\`. The vulnerability was deterministically reproduced in a sandboxed blast chamber with latency ${receipt.latencyMs}ms.`;
 

@@ -9,13 +9,15 @@ export type AttackVector =
   | 'IDOR_READ_VIOLATION'
   | 'IDOR_MUTATE_VIOLATION'
   | 'JWT_ALG_NONE_BYPASS'
-  | 'JWT_SIGNATURE_STRIPPED';
+  | 'JWT_SIGNATURE_STRIPPED'
+  | 'MASS_ASSIGNMENT_VIOLATION';
 
 export interface TargetScope {
   name: string;
   baseUrl: string;
   allowedHosts: string[];
   rulesOfEngagement: string;
+  outOfScopePatterns?: RegExp[];
 }
 
 export interface DiscoveredEndpoint {

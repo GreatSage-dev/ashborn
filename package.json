@@ -1,0 +1,28 @@
+{
+  "name": "ashborn",
+  "version": "1.0.0",
+  "description": "Autonomous AI Bug Hunter with Deterministic Blast Chamber Verification",
+  "main": "dist/index.js",
+  "bin": "dist/cli.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc && node --test dist/ashborn.test.js",
+    "demo": "tsc && node dist/cli.js",
+    "start": "tsc && node dist/index.js"
+  },
+  "keywords": [
+    "bug-bounty",
+    "security",
+    "autonomous-agent",
+    "idor",
+    "jwt",
+    "blast-chamber"
+  ],
+  "author": "Ashborn",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

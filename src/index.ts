@@ -1,3 +1,8 @@
+import { handleRequest } from './server.js';
+
+export default handleRequest;
+export { handleRequest };
+
 export * from './types.js';
 export * from './scout/bundle_extractor.js';
 export * from './scout/openapi_parser.js';

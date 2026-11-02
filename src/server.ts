@@ -5,6 +5,7 @@ import { AshbornEngine } from './engine.js';
 import { TargetLedger } from './storage/target_ledger.js';
 import { TargetScope, DualSessionContext } from './types.js';
 import { runGroundTruthBenchmark } from './benchmark/benchmark_runner.js';
+import { COCKPIT_HTML } from './cockpit_html.js';
 
 const PORT = 3000;
 const engine = new AshbornEngine({ enableHaddixMatrix: true });
@@ -20,12 +21,19 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
 
   // 1. Static File Serving (Landing Page & Dashboard)
   if (method === 'GET' && (url === '/' || url === '/index.html')) {
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'public, max-age=0, must-revalidate',
+    });
     const indexPath = join(process.cwd(), 'public', 'index.html');
     if (existsSync(indexPath)) {
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(readFileSync(indexPath, 'utf-8'));
-      return;
+      try {
+        res.end(readFileSync(indexPath, 'utf-8'));
+        return;
+      } catch {}
     }
+    res.end(COCKPIT_HTML);
+    return;
   }
 
   // 2. Demo Vulnerable & Secure API Endpoints (Built-in live testbed)
@@ -199,9 +207,15 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
 }
 
 export const server = createServer(handleRequest);
+export default handleRequest;
 
-// Auto-start when executed directly via node or npm run serve
-if (!process.env.VERCEL) {
+// Auto-start only when executed directly via node dist/server.js or npm run serve
+const isDirectRun = Boolean(
+  process.argv[1] &&
+  (process.argv[1].endsWith('server.js') || process.argv[1].endsWith('server.ts'))
+);
+
+if (isDirectRun && !process.env.VERCEL) {
   server.listen(PORT, '127.0.0.1', () => {
     console.log(`\n👑 ASHBORN COCKPIT READY: http://127.0.0.1:${PORT}\n`);
   });

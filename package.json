@@ -6,7 +6,7 @@
   "bin": "dist/cli.js",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "node scripts/build_cockpit.js && tsc",
     "test": "tsc && node --test dist/ashborn.test.js",
     "benchmark": "tsc && node dist/run_benchmark.js",
     "demo": "tsc && node dist/cli.js",

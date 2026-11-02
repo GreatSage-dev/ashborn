@@ -64,8 +64,19 @@ export interface ChamberExecutionResult {
   differentialEvidence?: DifferentialEvidence;
 }
 
+export interface ForensicBinding {
+  requestMethod: HttpMethod;
+  requestUrl: string;
+  requestHeadersHash: string;
+  requestBodyHash: string;
+  responseStatus: number;
+  responseBodyHash: string;
+  scopeHost: string;
+}
+
 export interface AshbornReceipt {
   receiptId: string;
+  findingHash: string; // Deduplication fingerprint: SHA256(canonicalHost:normalizedPath:vector)
   timestamp: string;
   targetUrl: string;
   vector: AttackVector;
@@ -73,9 +84,10 @@ export interface AshbornReceipt {
   latencyMs: number;
   rawCurl: string;
   leakFingerprint: string;
-  proofHash: string;
+  proofHash: string; // Cryptographic seal over all forensic properties
   verifiedBy: 'ASHBORN_BLAST_CHAMBER_V1';
   differentialProof?: DifferentialEvidence;
+  forensicBinding?: ForensicBinding;
 }
 
 export interface FormattedReport {

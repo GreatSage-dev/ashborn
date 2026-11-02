@@ -64,6 +64,12 @@ export class ReportGenerator {
    * Formats the report as a ready-to-copy Markdown document.
    */
   public static formatMarkdown(report: FormattedReport): string {
+    const forensicDetails = report.tamperProofReceipt.forensicBinding ? `
+- **Finding Fingerprint (Deduplication Hash):** \`${report.tamperProofReceipt.findingHash}\`
+- **Request Hash:** \`${report.tamperProofReceipt.forensicBinding.requestHeadersHash.slice(0, 16)}...\`
+- **Response Body Hash:** \`${report.tamperProofReceipt.forensicBinding.responseBodyHash.slice(0, 16)}...\`
+- **Authorized Scope Host:** \`${report.tamperProofReceipt.forensicBinding.scopeHost}\`` : '';
+
     return `# [${report.severity}] ${report.title}
 
 ## Vulnerability Classification
@@ -94,8 +100,8 @@ ${report.remediation}
 ---
 ### 🛡️ Ashborn Cryptographic Proof Receipt
 - **Receipt ID:** \`${report.tamperProofReceipt.receiptId}\`
-- **Timestamp:** \`${report.tamperProofReceipt.timestamp}\`
-- **SHA-256 Seal:** \`${report.tamperProofReceipt.proofHash}\`
+- **Timestamp:** \`${report.tamperProofReceipt.timestamp}\`${forensicDetails}
+- **SHA-256 Forensic Seal:** \`${report.tamperProofReceipt.proofHash}\`
 - **Verified By:** \`${report.tamperProofReceipt.verifiedBy}\`
 `;
   }

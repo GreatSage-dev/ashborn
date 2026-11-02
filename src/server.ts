@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { AshbornEngine } from './engine.js';
 import { TargetScope, DualSessionContext } from './types.js';
+import { runGroundTruthBenchmark } from './benchmark/benchmark_runner.js';
 
 const PORT = 3000;
 const engine = new AshbornEngine();
@@ -77,7 +78,21 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
     return;
   }
 
-  // 3. Ashborn Audit API Endpoint
+  // 3. Ground-Truth Adversarial Benchmark API Endpoint
+  if (url === '/api/benchmark' && method === 'GET') {
+    try {
+      const scorecard = await runGroundTruthBenchmark(49156);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(scorecard));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: message }));
+    }
+    return;
+  }
+
+  // 4. Ashborn Audit API Endpoint
   if (url === '/api/audit' && method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });

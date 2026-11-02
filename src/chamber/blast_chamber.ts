@@ -64,6 +64,25 @@ export class BlastChamber {
     const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
     try {
+      // 3. TWO-SIDED BASELINE REQUEST (if baselineHeaders provided)
+      let baselineText = '';
+      let baselineStatus = 0;
+      if (candidate.baselineHeaders) {
+        try {
+          const baselineRes = await fetch(candidate.targetUrl, {
+            method: candidate.method,
+            headers: candidate.baselineHeaders,
+            body: candidate.baselineBody,
+            signal: controller.signal,
+          });
+          baselineStatus = baselineRes.status;
+          baselineText = await baselineRes.text();
+        } catch {
+          // If baseline fetch fails, continue to probe
+        }
+      }
+
+      // 4. CROSS-TENANT ATTACKER PROBE
       const response = await fetch(candidate.targetUrl, {
         method: candidate.method,
         headers: candidate.headers,
@@ -123,14 +142,48 @@ export class BlastChamber {
         };
       }
 
+      // FALSE POSITIVE TRAP DETECTOR:
+      // Many loose APIs return HTTP 200 with an empty body or an error payload (e.g. {"error": "not found"})
+      const isDisguisedError = /"error"\s*:/i.test(text) || 
+        /"message"\s*:\s*"(not found|unauthorized|forbidden|invalid|access denied)"/i.test(text) ||
+        (text.trim() === '{}' && baselineText.length > 2) ||
+        (text.trim() === '[]' && baselineText.length > 2);
+
+      if (isDisguisedError) {
+        return {
+          result: {
+            passed: false,
+            statusCode,
+            latencyMs,
+            bodySnippet: snippet,
+            dataLeaked: false,
+            verdict: 'REFUTED_SAFE',
+            reason: 'REFUTED: Server returned HTTP 200, but body is a disguised error or empty tenant payload.',
+          },
+          receipt: null,
+        };
+      }
+
       // DETERMINISTIC PROOF ASSERTION:
-      // Must be a 2xx success AND must contain the victim's private fingerprint
-      const leakConfirmed = (statusCode >= 200 && statusCode < 300) && 
-        (candidate.expectedLeakFragment ? text.includes(candidate.expectedLeakFragment) : true);
+      // Must be a 2xx success AND must leak private victim data
+      let leakConfirmed = false;
+      const leakFingerprint = candidate.expectedLeakFragment || 'DIFFERENTIAL_MATCH_CONFIRMED';
+
+      if (statusCode >= 200 && statusCode < 300) {
+        if (candidate.expectedLeakFragment) {
+          leakConfirmed = text.includes(candidate.expectedLeakFragment);
+        } else if (baselineText && baselineStatus === 200) {
+          // If no manual fingerprint provided, probe must match authorized baseline body
+          leakConfirmed = text.length > 0 && text === baselineText;
+        } else {
+          // Fallback: require explicit leak fragment to prevent false positive 200s
+          leakConfirmed = false;
+        }
+      }
 
       if (leakConfirmed) {
         const rawCurl = this.generateCurl(candidate);
-        const receipt = this.mintReceipt(candidate, statusCode, latencyMs, rawCurl, candidate.expectedLeakFragment);
+        const receipt = this.mintReceipt(candidate, statusCode, latencyMs, rawCurl, leakFingerprint);
 
         return {
           result: {
@@ -140,7 +193,13 @@ export class BlastChamber {
             bodySnippet: snippet,
             dataLeaked: true,
             verdict: 'CONFIRMED_VULNERABILITY',
-            reason: `CRITICAL: Attacker token successfully extracted victim data containing private fragment '${candidate.expectedLeakFragment}'.`,
+            reason: `CRITICAL: Attacker token successfully extracted victim data containing private fragment '${leakFingerprint}'.`,
+            differentialEvidence: {
+              baselineStatus: baselineStatus || 200,
+              probeStatus: statusCode,
+              leakedFields: [leakFingerprint],
+              byteDifference: Math.abs(text.length - baselineText.length),
+            },
           },
           receipt,
         };
@@ -153,7 +212,7 @@ export class BlastChamber {
             bodySnippet: snippet,
             dataLeaked: false,
             verdict: 'REFUTED_SAFE',
-            reason: `Server responded with HTTP ${statusCode}, but private data fragment was not present in response.`,
+            reason: `Server responded with HTTP ${statusCode}, but private victim data was not present in response.`,
           },
           receipt: null,
         };

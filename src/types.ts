@@ -31,7 +31,7 @@ export interface DiscoveredEndpoint {
 export interface DualSessionContext {
   victimToken: string;
   victimResourceId: string;
-  victimSecretIdentifier: string; // Known private string that should NEVER appear in attacker responses
+  victimSecretIdentifier?: string; // Optional manual fingerprint; if omitted, differential testing auto-extracts it from User A's baseline
   attackerToken: string;
 }
 
@@ -41,7 +41,16 @@ export interface ExploitCandidate {
   method: HttpMethod;
   headers: Record<string, string>;
   body?: string;
-  expectedLeakFragment: string;
+  baselineHeaders?: Record<string, string>; // User A (victim) headers for two-sided differential comparison
+  baselineBody?: string;
+  expectedLeakFragment?: string;
+}
+
+export interface DifferentialEvidence {
+  baselineStatus: number;
+  probeStatus: number;
+  leakedFields: string[];
+  byteDifference: number;
 }
 
 export interface ChamberExecutionResult {
@@ -52,6 +61,7 @@ export interface ChamberExecutionResult {
   dataLeaked: boolean;
   verdict: 'CONFIRMED_VULNERABILITY' | 'REFUTED_SAFE' | 'BLOCKED_BY_WAF' | 'SERVER_ERROR';
   reason: string;
+  differentialEvidence?: DifferentialEvidence;
 }
 
 export interface AshbornReceipt {
@@ -65,6 +75,7 @@ export interface AshbornReceipt {
   leakFingerprint: string;
   proofHash: string;
   verifiedBy: 'ASHBORN_BLAST_CHAMBER_V1';
+  differentialProof?: DifferentialEvidence;
 }
 
 export interface FormattedReport {

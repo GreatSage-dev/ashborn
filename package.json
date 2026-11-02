@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsc",
     "test": "tsc && node --test dist/ashborn.test.js",
+    "benchmark": "tsc && node dist/run_benchmark.js",
     "demo": "tsc && node dist/cli.js",
     "serve": "tsc && node dist/server.js",
     "start": "tsc && node dist/server.js"

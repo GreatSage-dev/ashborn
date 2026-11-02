@@ -85,20 +85,25 @@ export class AshbornEngine {
       allowedHosts: scope.allowedHosts,
     });
 
-    const highValueEndpoints = BundleExtractor.filterHighValueTargets(endpoints);
-    const confirmedReceipts: AshbornReceipt[] = [];
-    const reports: FormattedReport[] = [];
-    let candidatesTested = 0;
     let blockedByGovernor = 0;
+    const safeEndpoints: DiscoveredEndpoint[] = [];
 
-    for (const ep of highValueEndpoints) {
-      // 1. SAFETY GOVERNOR CHECK (Path & Method)
+    // 1. SAFETY & SCOPE GATE: Evaluate 100% of discovered endpoints before filtering
+    for (const ep of endpoints) {
       const safety = SafetyGovernor.isBlocked(ep.path, ep.method, scope.outOfScopePatterns, scope.allowedHosts);
       if (safety.blocked) {
         blockedByGovernor++;
-        continue;
+      } else {
+        safeEndpoints.push(ep);
       }
+    }
 
+    const highValueEndpoints = BundleExtractor.filterHighValueTargets(safeEndpoints);
+    const confirmedReceipts: AshbornReceipt[] = [];
+    const reports: FormattedReport[] = [];
+    let candidatesTested = 0;
+
+    for (const ep of highValueEndpoints) {
       // 2. IDOR PROBES
       const idorCandidates = IdorStriker.generateCandidates(ep, scope.baseUrl, context);
       for (const candidate of idorCandidates) {

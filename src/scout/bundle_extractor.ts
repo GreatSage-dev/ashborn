@@ -5,8 +5,8 @@ import { DiscoveredEndpoint, HttpMethod } from '../types.js';
  * Scans client-side JavaScript bundles to extract hidden API routes in <10ms.
  */
 export class BundleExtractor {
-  // Regex patterns to capture internal API routes from compiled frontend bundles
-  private static readonly API_ROUTE_REGEX = /(?:['"`])(\/(?:api|v[0-9]|graphql|internal|auth|user|admin)\/[a-zA-Z0-9_\-\/:\$\{\}]+)(?:['"`])/g;
+  // Regex patterns to capture internal API routes and absolute URLs from compiled frontend bundles
+  private static readonly API_ROUTE_REGEX = /(?:['"`])((?:https?:\/\/[a-zA-Z0-9_\-\.]+|\/(?:api|v[0-9]|graphql|internal|auth|user|admin))\/[a-zA-Z0-9_\-\/:\$\{\}\.]+)(?:['"`])/g;
   private static readonly PARAMETER_REGEX = /[:\$]([a-zA-Z0-9_]+)|\{([a-zA-Z0-9_]+)\}|[\?&]([a-zA-Z0-9_]+)=/g;
 
   /**
@@ -34,13 +34,39 @@ export class BundleExtractor {
         }
       }
 
-      // Infer mutation nature
-      const isStateMutating = /(update|create|delete|remove|patch|edit|set|upload|cancel|transfer)/i.test(rawPath);
-      const inferredMethod: HttpMethod = isStateMutating ? 'POST' : 'GET';
+      // Infer HTTP method from statement context (bounded by statement separators)
+      const matchIndex = match.index ?? 0;
+      const prevSep = Math.max(
+        bundleContent.lastIndexOf(';', matchIndex),
+        bundleContent.lastIndexOf('\n', matchIndex)
+      );
+      const nextSep = Math.min(
+        bundleContent.indexOf(';', matchIndex) !== -1 ? bundleContent.indexOf(';', matchIndex) : bundleContent.length,
+        bundleContent.indexOf('\n', matchIndex) !== -1 ? bundleContent.indexOf('\n', matchIndex) : bundleContent.length
+      );
 
-      // Deduplicate by path
-      if (!endpointsMap.has(rawPath)) {
-        endpointsMap.set(rawPath, {
+      const statementWindow = bundleContent.slice(
+        prevSep === -1 ? Math.max(0, matchIndex - 40) : prevSep,
+        nextSep === bundleContent.length ? Math.min(bundleContent.length, matchIndex + rawPath.length + 60) : nextSep
+      );
+
+      let inferredMethod: HttpMethod = 'GET';
+      if (/method\s*:\s*['"]PUT['"]|\.put\s*\(/i.test(statementWindow)) {
+        inferredMethod = 'PUT';
+      } else if (/method\s*:\s*['"]PATCH['"]|\.patch\s*\(/i.test(statementWindow)) {
+        inferredMethod = 'PATCH';
+      } else if (/method\s*:\s*['"]DELETE['"]|\.delete\s*\(/i.test(statementWindow)) {
+        inferredMethod = 'DELETE';
+      } else if (/method\s*:\s*['"]POST['"]|\.post\s*\(/i.test(statementWindow) || /(update|create|delete|remove|patch|edit|set|upload|cancel|transfer)/i.test(rawPath)) {
+        inferredMethod = 'POST';
+      }
+
+      const isStateMutating = inferredMethod !== 'GET';
+
+      // Deduplicate by method + path
+      const key = `${inferredMethod}:${rawPath}`;
+      if (!endpointsMap.has(key)) {
+        endpointsMap.set(key, {
           path: rawPath,
           method: inferredMethod,
           parameters,

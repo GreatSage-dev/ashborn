@@ -59,7 +59,7 @@ export class IdorStriker {
 
     const fullUrl = `${baseUrl.replace(/\/$/, '')}/${resolvedPath.replace(/^\//, '')}`;
 
-    // Read attack candidate with human-like browser headers
+    // Read attack candidate with human-like browser headers and dual-token baseline
     candidates.push({
       vector: endpoint.isStateMutating ? 'IDOR_MUTATE_VIOLATION' : 'IDOR_READ_VIOLATION',
       targetUrl: fullUrl,
@@ -69,8 +69,14 @@ export class IdorStriker {
         'Authorization': `Bearer ${context.attackerToken}`,
         'Content-Type': 'application/json',
       },
+      baselineHeaders: {
+        ...REALISTIC_BROWSER_HEADERS,
+        'Authorization': `Bearer ${context.victimToken}`,
+        'Content-Type': 'application/json',
+      },
       body: endpoint.isStateMutating ? JSON.stringify({ resourceId: context.victimResourceId }) : undefined,
-      expectedLeakFragment: context.victimSecretIdentifier,
+      baselineBody: endpoint.isStateMutating ? JSON.stringify({ resourceId: context.victimResourceId }) : undefined,
+      expectedLeakFragment: context.victimSecretIdentifier || context.victimResourceId,
     });
 
     return candidates;

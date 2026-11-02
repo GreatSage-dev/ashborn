@@ -15,6 +15,7 @@ import {
   DualSessionContext,
   TargetScope
 } from './index.js';
+import { runGroundTruthBenchmark } from './benchmark/benchmark_runner.js';
 
 describe('ASHBORN AUTONOMOUS HUNTER - SYSTEM TEST SUITE', () => {
   let server: Server;
@@ -328,5 +329,14 @@ describe('ASHBORN AUTONOMOUS HUNTER - SYSTEM TEST SUITE', () => {
     const massReport = auditResult.reports.find(r => r.vulnerabilityClass.includes('CWE-915'));
     assert.ok(massReport !== undefined);
     assert.ok(massReport.title.includes('Mass Assignment'));
+  });
+
+  test('Benchmark Range: 10-Scenario Ground Truth achieves 100% precision and 0 false positives', async () => {
+    const scorecard = await runGroundTruthBenchmark(49155);
+    assert.strictEqual(scorecard.scenariosTested, 10);
+    assert.strictEqual(scorecard.falsePositives, 0, 'False Positives MUST be 0 to avoid platform bans');
+    assert.strictEqual(scorecard.truePositives, 3, 'Must detect all 3 true vulnerabilities');
+    assert.strictEqual(scorecard.precisionPercent, 100);
+    assert.strictEqual(scorecard.recallPercent, 100);
   });
 });

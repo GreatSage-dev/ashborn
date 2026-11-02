@@ -55,11 +55,15 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
   }
 
   // 1. Static File Serving (Landing Page & Dashboard)
-  if (method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
+  if ((method === 'GET' || method === 'HEAD') && (pathname === '/' || pathname === '/index.html')) {
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'public, max-age=0, must-revalidate',
     });
+    if (method === 'HEAD') {
+      res.end();
+      return;
+    }
     const indexPath = join(process.cwd(), 'public', 'index.html');
     if (existsSync(indexPath)) {
       try {

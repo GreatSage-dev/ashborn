@@ -33,9 +33,11 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
   let pathname = '/';
   try {
     const parsed = new URL(rawUrl, 'http://127.0.0.1');
-    const routeParam = parsed.searchParams.get('__route');
-    if (routeParam) {
-      pathname = routeParam.startsWith('/') ? routeParam : `/${routeParam}`;
+    const pathParam = parsed.searchParams.get('path') || parsed.searchParams.get('__route');
+    if (pathParam) {
+      pathname = pathParam.startsWith('/api')
+        ? pathParam
+        : `/api/${pathParam.replace(/^\/+/, '')}`;
     } else if (req.headers['x-matched-path'] && req.headers['x-matched-path'] !== '/api/index.js') {
       pathname = req.headers['x-matched-path'] as string;
     } else {
@@ -44,6 +46,9 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
   } catch {
     pathname = rawUrl;
   }
+
+  // Strip query string if any remains
+  pathname = pathname.split('?')[0];
 
   if (pathname.length > 1 && pathname.endsWith('/')) {
     pathname = pathname.slice(0, -1);
@@ -237,12 +242,7 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
   }
 
   res.writeHead(404, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({
-    error: 'Not Found',
-    rawUrl: req.url,
-    pathname,
-    xMatchedPath: req.headers['x-matched-path'],
-  }));
+  res.end(JSON.stringify({ error: 'Not Found' }));
 }
 
 export const server = createServer(handleRequest);

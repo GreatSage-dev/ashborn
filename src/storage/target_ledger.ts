@@ -20,9 +20,13 @@ export class TargetLedger {
   private baseDir: string;
 
   constructor(baseDir = 'targets') {
-    this.baseDir = path.resolve(process.cwd(), baseDir);
+    const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+    const root = isServerless ? '/tmp' : process.cwd();
+    this.baseDir = path.resolve(root, baseDir);
     if (!fs.existsSync(this.baseDir)) {
-      fs.mkdirSync(this.baseDir, { recursive: true });
+      try {
+        fs.mkdirSync(this.baseDir, { recursive: true });
+      } catch {}
     }
   }
 
@@ -37,7 +41,9 @@ export class TargetLedger {
     for (const sub of subdirs) {
       const fullPath = path.join(targetDir, sub);
       if (!fs.existsSync(fullPath)) {
-        fs.mkdirSync(fullPath, { recursive: true });
+        try {
+          fs.mkdirSync(fullPath, { recursive: true });
+        } catch {}
       }
     }
 
@@ -51,7 +57,9 @@ export class TargetLedger {
         totalEndpoints: 0,
         totalFindings: 0,
       };
-      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
+      try {
+        fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
+      } catch {}
     }
 
     return targetDir;

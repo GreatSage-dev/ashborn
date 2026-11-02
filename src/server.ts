@@ -14,7 +14,7 @@ const DEMO_VICTIM_ID = 'rec_octane_881';
 const DEMO_VICTIM_SECRET = 'CONFIDENTIAL_CUSTOMER_DATA_778192_LEAKED';
 const DEMO_ATTACKER_TOKEN = 'ashborn_hunter_token_session_b';
 
-const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+export async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = req.url || '/';
   const method = req.method || 'GET';
 
@@ -196,8 +196,13 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
 
   res.writeHead(404);
   res.end('Not Found');
-});
+}
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`\n👑 ASHBORN COCKPIT READY: http://127.0.0.1:${PORT}\n`);
-});
+export const server = createServer(handleRequest);
+
+// Auto-start when executed directly via node or npm run serve
+if (!process.env.VERCEL) {
+  server.listen(PORT, '127.0.0.1', () => {
+    console.log(`\n👑 ASHBORN COCKPIT READY: http://127.0.0.1:${PORT}\n`);
+  });
+}

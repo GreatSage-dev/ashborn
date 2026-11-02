@@ -1433,6 +1433,18 @@
 
   <!-- ════════ SCRIPTS ════════ -->
   <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.location.origin && !window.location.origin.includes('file:')) {
+        const targetInput = document.getElementById('target-url');
+        if (targetInput) targetInput.value = window.location.origin;
+
+        const curlA = document.getElementById('curl-user-a');
+        const curlB = document.getElementById('curl-user-b');
+        if (curlA) curlA.value = curlA.value.replace(/http:\/\/127\.0\.0\.1:3000/g, window.location.origin);
+        if (curlB) curlB.value = curlB.value.replace(/http:\/\/127\.0\.0\.1:3000/g, window.location.origin);
+      }
+    });
+
     function switchView(viewName) {
       const landing = document.getElementById('view-landing');
       const cockpit = document.getElementById('view-cockpit');
@@ -1563,7 +1575,7 @@
 
     async function run1ClickDemo() {
       switchView('cockpit');
-      document.getElementById('target-url').value = 'http://127.0.0.1:3000';
+      document.getElementById('target-url').value = window.location.origin || 'http://127.0.0.1:3000';
       document.getElementById('ingress-mode').value = 'bundle';
       handleModeChange();
       await executeAuditRequest();

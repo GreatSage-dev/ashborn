@@ -236,8 +236,13 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
     return;
   }
 
-  res.writeHead(404);
-  res.end('Not Found');
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({
+    error: 'Not Found',
+    rawUrl: req.url,
+    pathname,
+    xMatchedPath: req.headers['x-matched-path'],
+  }));
 }
 
 export const server = createServer(handleRequest);

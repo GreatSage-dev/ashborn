@@ -84,8 +84,9 @@ export class BundleExtractor {
    */
   public static filterHighValueTargets(endpoints: DiscoveredEndpoint[]): DiscoveredEndpoint[] {
     return endpoints.filter(ep => 
+      ep.sourceBundle === 'curl_ingress' ||
       ep.parameters.some(p => /(id|user|account|org|team|invoice|order|doc|profile)/i.test(p)) ||
-      /(user|account|org|order|invoice|profile|admin)\/[0-9a-fA-F\-\:\$]+/i.test(ep.path)
+      /(user|account|org|order|invoice|profile|admin)\/[a-zA-Z0-9_\-\:\$]+/i.test(ep.path)
     );
   }
 }

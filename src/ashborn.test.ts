@@ -5,6 +5,9 @@ import { createServer, Server, IncomingMessage, ServerResponse } from 'node:http
 import { 
   BundleExtractor, 
   OpenApiParser,
+  CurlParser,
+  TargetLedger,
+  HaddixMatrix,
   JwtMutator, 
   IdorStriker, 
   MassAssignmentStriker,
@@ -338,5 +341,125 @@ describe('ASHBORN AUTONOMOUS HUNTER - SYSTEM TEST SUITE', () => {
     assert.strictEqual(scorecard.truePositives, 3, 'Must detect all 3 true vulnerabilities');
     assert.strictEqual(scorecard.precisionPercent, 100);
     assert.strictEqual(scorecard.recallPercent, 100);
+  });
+
+  test('Upgrade 4: CurlParser ingests browser cURL with tokens, cookies, CSRF, and builds dual context', () => {
+    const userACurl = `curl 'https://api.acme.com/v1/invoices/9941?expand=true' \\
+      -H 'Authorization: Bearer victim_token_aaa_111' \\
+      -H 'X-CSRF-Token: csrf_secret_token_123' \\
+      -H 'Cookie: session=sess_999; theme=dark' \\
+      -H 'User-Agent: Mozilla/5.0 Chrome/120.0'`;
+
+    const userBCurl = `curl 'https://api.acme.com/v1/invoices/2202' \\
+      -H 'Authorization: Bearer attacker_token_bbb_222'`;
+
+    const parsedA = CurlParser.parse(userACurl);
+    assert.strictEqual(parsedA.host, 'api.acme.com');
+    assert.strictEqual(parsedA.path, '/v1/invoices/9941?expand=true');
+    assert.strictEqual(parsedA.bearerToken, 'victim_token_aaa_111');
+    assert.strictEqual(parsedA.csrfToken, 'csrf_secret_token_123');
+    assert.strictEqual(parsedA.cookies['session'], 'sess_999');
+    assert.strictEqual(parsedA.extractedResourceId, '9941');
+
+    const dual = CurlParser.buildDualContextFromCurls(userACurl, userBCurl);
+    assert.strictEqual(dual.context.victimToken, 'victim_token_aaa_111');
+    assert.strictEqual(dual.context.attackerToken, 'attacker_token_bbb_222');
+    assert.strictEqual(dual.context.victimResourceId, '9941');
+    assert.strictEqual(dual.scope.baseUrl, 'https://api.acme.com');
+  });
+
+  test('Upgrade 5: TargetLedger manages workspace, deduplicates findings, and tracks metadata', () => {
+    const testDir = 'targets_test_temp';
+    const ledger = new TargetLedger(testDir);
+    const program = 'acme_corp_bounty';
+
+    // 1. Init & Save endpoints
+    ledger.initTarget(program, 'https://api.acme.com');
+    ledger.saveEndpoints(program, [
+      { path: '/api/v1/users', method: 'GET', parameters: [], isStateMutating: false },
+      { path: '/api/v1/users', method: 'GET', parameters: [], isStateMutating: false }, // Duplicate
+      { path: '/api/v1/invoices', method: 'POST', parameters: ['id'], isStateMutating: true },
+    ]);
+
+    // 2. Record Receipt & Test Deduplication
+    const mockReceipt = {
+      receiptId: 'ASHBORN-TEST01',
+      findingHash: 'hash_test_1234567890abcdef',
+      timestamp: new Date().toISOString(),
+      targetUrl: 'https://api.acme.com/api/v1/invoices/9941',
+      vector: 'IDOR_READ_VIOLATION' as const,
+      statusCode: 200,
+      latencyMs: 12,
+      rawCurl: 'curl ...',
+      leakFingerprint: 'SSN_982',
+      proofHash: 'proof_hash_abc',
+      verifiedBy: 'ASHBORN_BLAST_CHAMBER_V1' as const,
+    };
+
+    const firstRecord = ledger.recordReceipt(program, mockReceipt);
+    assert.strictEqual(firstRecord, true, 'First recording of finding MUST succeed');
+
+    const duplicateRecord = ledger.recordReceipt(program, mockReceipt);
+    assert.strictEqual(duplicateRecord, false, 'Duplicate finding MUST be prevented by findingHash');
+
+    // Clean up temporary test dir
+    import('fs').then(fs => {
+      try { fs.rmSync(testDir, { recursive: true, force: true }); } catch {}
+    });
+  });
+
+  test('Upgrade 6: HaddixMatrix generates 4-stage systematic authorization checklist', () => {
+    const ep = {
+      path: '/api/v1/invoices/{id}',
+      method: 'GET' as const,
+      parameters: ['id'],
+      isStateMutating: false,
+    };
+
+    const context: DualSessionContext = {
+      victimToken: 'token_user_a',
+      victimResourceId: 'inv_1042',
+      attackerToken: 'token_user_b',
+    };
+
+    const scope: TargetScope = {
+      name: 'Acme',
+      baseUrl: 'https://api.acme.com',
+      allowedHosts: ['api.acme.com'],
+      rulesOfEngagement: 'Testing',
+    };
+
+    const stages = HaddixMatrix.generateMatrix(ep, scope.baseUrl, context, scope);
+    assert.strictEqual(stages.length, 4, 'Haddix Matrix MUST have exactly 4 stages');
+    assert.ok(stages[0].stageName.includes('Cross-Tenant IDOR'));
+    assert.ok(stages[1].stageName.includes('Public Resource Guard'));
+    assert.ok(stages[2].stageName.includes('Verb Tampering'));
+    assert.ok(stages[3].stageName.includes('Mass Assignment'));
+
+    assert.strictEqual(stages[0].candidate.headers['Authorization'], 'Bearer token_user_b');
+    assert.strictEqual(stages[1].candidate.headers['Authorization'], undefined, 'Stage 2 unauth check must omit auth header');
+    assert.strictEqual(stages[2].candidate.method, 'POST', 'Stage 3 must swap GET to POST');
+    assert.ok(stages[3].candidate.body?.includes('"role":"admin"'));
+  });
+
+  test('Upgrade 7: AshbornEngine executes cURL ingress audit end-to-end with persistent ledger', async () => {
+    const engine = new AshbornEngine({
+      ledgerBaseDir: 'targets_test_temp2',
+      enableHaddixMatrix: true,
+    });
+
+    const userACurl = `curl '${BASE_URL}/api/v1/invoices/${VICTIM_ID}' -H 'Authorization: Bearer victim_token'`;
+    const userBCurl = `curl '${BASE_URL}/api/v1/invoices/${VICTIM_ID}' -H 'Authorization: Bearer ${ATTACKER_TOKEN}'`;
+
+    const auditResult = await engine.auditTargetWithCurls(userACurl, userBCurl, 'local_test_program');
+
+    assert.strictEqual(auditResult.endpointsScanned, 1);
+    assert.ok(auditResult.confirmedReceipts.length >= 1, 'Must detect vulnerable invoice endpoint via cURL ingress');
+    assert.strictEqual(auditResult.confirmedReceipts[0].statusCode, 200);
+
+    // Clean up temporary test dir
+    import('fs').then(fs => {
+      try { fs.rmSync('targets_test_temp2', { recursive: true, force: true }); } catch {}
+    });
   });
 });

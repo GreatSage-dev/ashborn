@@ -2,11 +2,13 @@ import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { AshbornEngine } from './engine.js';
+import { TargetLedger } from './storage/target_ledger.js';
 import { TargetScope, DualSessionContext } from './types.js';
 import { runGroundTruthBenchmark } from './benchmark/benchmark_runner.js';
 
 const PORT = 3000;
-const engine = new AshbornEngine();
+const engine = new AshbornEngine({ enableHaddixMatrix: true });
+const ledger = new TargetLedger();
 
 const DEMO_VICTIM_ID = 'rec_octane_881';
 const DEMO_VICTIM_SECRET = 'CONFIDENTIAL_CUSTOMER_DATA_778192_LEAKED';
@@ -92,7 +94,50 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
     return;
   }
 
-  // 4. Ashborn Audit API Endpoint
+  // 4. Target Ledger: List Tracked Targets
+  if (url === '/api/targets' && method === 'GET') {
+    try {
+      const targets = ledger.listTargets();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ targets }));
+    } catch (err: unknown) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: String(err) }));
+    }
+    return;
+  }
+
+  // 5. Ingress: Audit via Raw Browser / Burp Suite cURL Commands
+  if (url === '/api/audit/curl' && method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body);
+        if (!payload.userACurl || !payload.userBCurl) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Both userACurl and userBCurl are required for dual-session testing.' }));
+          return;
+        }
+
+        const result = await engine.auditTargetWithCurls(
+          payload.userACurl,
+          payload.userBCurl,
+          payload.programName
+        );
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(result));
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: message }));
+      }
+    });
+    return;
+  }
+
+  // 6. Ashborn Bundle & OpenAPI Audit Endpoint
   if (url === '/api/audit' && method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });

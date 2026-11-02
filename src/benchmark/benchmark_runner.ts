@@ -25,7 +25,7 @@ export interface BenchmarkScorecard {
 /**
  * Runs the full 10-scenario Ground-Truth Adversarial Benchmark suite.
  */
-export async function runGroundTruthBenchmark(port = 49153): Promise<BenchmarkScorecard> {
+export async function runGroundTruthBenchmark(port = 0): Promise<BenchmarkScorecard> {
   const range = await startGroundTruthRange(port);
 
   try {

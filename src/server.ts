@@ -16,11 +16,41 @@ const DEMO_VICTIM_SECRET = 'CONFIDENTIAL_CUSTOMER_DATA_778192_LEAKED';
 const DEMO_ATTACKER_TOKEN = 'ashborn_hunter_token_session_b';
 
 export async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const url = req.url || '/';
+  // CORS & Security headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
   const method = req.method || 'GET';
+  if (method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // Extract path, handling Vercel rewrites & query params
+  const rawUrl = req.url || '/';
+  let pathname = '/';
+  try {
+    const parsed = new URL(rawUrl, 'http://127.0.0.1');
+    const routeParam = parsed.searchParams.get('__route');
+    if (routeParam) {
+      pathname = routeParam.startsWith('/') ? routeParam : `/${routeParam}`;
+    } else if (req.headers['x-matched-path'] && req.headers['x-matched-path'] !== '/api/index.js') {
+      pathname = req.headers['x-matched-path'] as string;
+    } else {
+      pathname = parsed.pathname;
+    }
+  } catch {
+    pathname = rawUrl;
+  }
+
+  if (pathname.length > 1 && pathname.endsWith('/')) {
+    pathname = pathname.slice(0, -1);
+  }
 
   // 1. Static File Serving (Landing Page & Dashboard)
-  if (method === 'GET' && (url === '/' || url === '/index.html')) {
+  if (method === 'GET' && (pathname === '/' || pathname === '/index.html')) {
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'public, max-age=0, must-revalidate',
@@ -37,7 +67,7 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
   }
 
   // 2. Demo Vulnerable & Secure API Endpoints (Built-in live testbed)
-  if (url.startsWith('/api/demo/workspaces/')) {
+  if (pathname.startsWith('/api/demo/workspaces/')) {
     const auth = req.headers['authorization'] || '';
     if (auth.includes(DEMO_ATTACKER_TOKEN)) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -55,7 +85,7 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
     return;
   }
 
-  if (url.startsWith('/api/demo/users/') && method === 'PUT') {
+  if (pathname.startsWith('/api/demo/users/') && method === 'PUT') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', () => {
@@ -76,22 +106,22 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
     return;
   }
 
-  if (url.startsWith('/api/demo/secure_profile/')) {
+  if (pathname.startsWith('/api/demo/secure_profile/')) {
     res.writeHead(403, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Forbidden: Cross-tenant isolation enforced.' }));
     return;
   }
 
-  if (url.startsWith('/api/demo/billing/')) {
+  if (pathname.startsWith('/api/demo/billing/')) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Billing operations require elevated administrative context.' }));
     return;
   }
 
   // 3. Ground-Truth Adversarial Benchmark API Endpoint
-  if (url === '/api/benchmark' && method === 'GET') {
+  if (pathname === '/api/benchmark' && method === 'GET') {
     try {
-      const scorecard = await runGroundTruthBenchmark(49156);
+      const scorecard = await runGroundTruthBenchmark(0);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(scorecard));
     } catch (err: unknown) {
@@ -103,20 +133,21 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
   }
 
   // 4. Target Ledger: List Tracked Targets
-  if (url === '/api/targets' && method === 'GET') {
+  if (pathname === '/api/targets' && method === 'GET') {
     try {
       const targets = ledger.listTargets();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ targets }));
     } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: String(err) }));
+      res.end(JSON.stringify({ error: message }));
     }
     return;
   }
 
   // 5. Ingress: Audit via Raw Browser / Burp Suite cURL Commands
-  if (url === '/api/audit/curl' && method === 'POST') {
+  if (pathname === '/api/audit/curl' && method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', async () => {
@@ -146,13 +177,16 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
   }
 
   // 6. Ashborn Bundle & OpenAPI Audit Endpoint
-  if (url === '/api/audit' && method === 'POST') {
+  if (pathname === '/api/audit' && method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
     req.on('end', async () => {
       try {
         const payload = JSON.parse(body);
-        const baseUrl = payload.scope?.baseUrl || `http://127.0.0.1:${PORT}`;
+        const host = req.headers.host || `127.0.0.1:${PORT}`;
+        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        const defaultBaseUrl = `${protocol}://${host}`;
+        const baseUrl = payload.scope?.baseUrl || defaultBaseUrl;
         let parsedHost = '127.0.0.1';
         try {
           parsedHost = new URL(baseUrl).hostname;

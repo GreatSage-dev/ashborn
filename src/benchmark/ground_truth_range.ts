@@ -168,9 +168,11 @@ export function startGroundTruthRange(port = 49152): Promise<GroundTruthBenchmar
     });
 
     server.listen(port, '127.0.0.1', () => {
+      const addr = server.address();
+      const boundPort = typeof addr === 'object' && addr ? addr.port : port;
       resolve({
-        port,
-        baseUrl: `http://127.0.0.1:${port}`,
+        port: boundPort,
+        baseUrl: `http://127.0.0.1:${boundPort}`,
         server,
         close: () => new Promise(r => server.close(() => r())),
       });

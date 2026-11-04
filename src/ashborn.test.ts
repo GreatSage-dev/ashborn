@@ -5,6 +5,9 @@ import { createServer, Server, IncomingMessage, ServerResponse } from 'node:http
 import { 
   BundleExtractor, 
   OpenApiParser,
+  PostmanParser,
+  GraphQLParser,
+  GraphQLStriker,
   CurlParser,
   TargetLedger,
   HaddixMatrix,
@@ -99,6 +102,74 @@ describe('ASHBORN AUTONOMOUS HUNTER - SYSTEM TEST SUITE', () => {
         }
         res.writeHead(403, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Invalid signature' }));
+        return;
+      }
+
+      // ROUTE 5: GraphQL Endpoint (Introspection & Vulnerable BOLA Query)
+      if (url === '/graphql' && method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', () => {
+          try {
+            const parsed = JSON.parse(body);
+            // Introspection Query
+            if (parsed.query && parsed.query.includes('__schema')) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                data: {
+                  __schema: {
+                    queryType: { name: 'Query' },
+                    mutationType: { name: 'Mutation' },
+                    types: [
+                      {
+                        name: 'Query',
+                        kind: 'OBJECT',
+                        fields: [
+                          {
+                            name: 'invoice',
+                            args: [{ name: 'id', type: { kind: 'NON_NULL', name: 'ID' } }]
+                          },
+                          {
+                            name: 'publicInfo',
+                            args: []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }));
+              return;
+            }
+
+            // Vulnerable GraphQL Query: invoice(id: $id)
+            if (parsed.query && parsed.query.includes('invoice')) {
+              if (auth.includes(ATTACKER_TOKEN) || auth.includes('victim_token')) {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                  data: {
+                    invoice: {
+                      id: VICTIM_ID,
+                      secret: VICTIM_SECRET,
+                      status: 'unpaid',
+                      amount: 50000,
+                    }
+                  }
+                }));
+                return;
+              }
+              res.writeHead(401, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ errors: [{ message: 'Unauthorized' }] }));
+              return;
+            }
+
+            res.writeHead(400);
+            res.end(JSON.stringify({ errors: [{ message: 'Bad request' }] }));
+          } catch {
+            res.writeHead(400);
+            res.end();
+          }
+        });
         return;
       }
 
@@ -460,6 +531,166 @@ describe('ASHBORN AUTONOMOUS HUNTER - SYSTEM TEST SUITE', () => {
     // Clean up temporary test dir
     import('fs').then(fs => {
       try { fs.rmSync('targets_test_temp2', { recursive: true, force: true }); } catch {}
+    });
+  });
+
+  test('Upgrade 8: PostmanParser ingests v2.1 collection with nested folders, query params, and body templates', () => {
+    const samplePostmanCollection = {
+      info: {
+        name: 'Fintech API',
+        schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json',
+      },
+      item: [
+        {
+          name: 'Invoices Folder',
+          item: [
+            {
+              name: 'Get Invoice by ID',
+              request: {
+                method: 'GET',
+                url: {
+                  raw: '{{baseUrl}}/api/v1/invoices/:id',
+                  variable: [{ key: 'id', value: 'inv_1042' }],
+                },
+              },
+            },
+            {
+              name: 'Query Invoices',
+              request: {
+                method: 'GET',
+                url: 'https://api.fintech.com/api/v1/invoices/filter?status=active&userId={{userId}}',
+              },
+            },
+          ],
+        },
+        {
+          name: 'Update User Profile',
+          request: {
+            method: 'PUT',
+            url: {
+              raw: '{{baseUrl}}/api/v1/users/:userId/profile',
+            },
+            body: {
+              mode: 'raw',
+              raw: JSON.stringify({ name: 'Alice', email: 'alice@acme.com' }),
+            },
+          },
+        },
+      ],
+    };
+
+    const endpoints = PostmanParser.parseCollection(samplePostmanCollection);
+    assert.strictEqual(endpoints.length, 3, 'Must discover all 3 nested requests from Postman');
+
+    const ep1 = endpoints.find(e => e.path === '/api/v1/invoices/:id');
+    assert.ok(ep1, 'Must extract parameterized invoice path');
+    assert.strictEqual(ep1?.method, 'GET');
+    assert.ok(ep1?.parameters.includes('id'), 'Must extract :id parameter');
+
+    const ep2 = endpoints.find(e => e.path === '/api/v1/invoices/filter');
+    assert.ok(ep2, 'Must extract filter path');
+    assert.ok(ep2?.parameters.includes('userId'), 'Must extract userId query param');
+
+    const ep3 = endpoints.find(e => e.path === '/api/v1/users/:userId/profile');
+    assert.ok(ep3, 'Must extract profile update endpoint');
+    assert.strictEqual(ep3?.method, 'PUT');
+    assert.strictEqual(ep3?.isStateMutating, true);
+    assert.ok(ep3?.parameters.includes('email'), 'Must extract email parameter from body');
+  });
+
+  test('Upgrade 9: GraphQLParser extracts object-target queries from introspection schema', () => {
+    const mockIntrospection = {
+      data: {
+        __schema: {
+          queryType: { name: 'Query' },
+          mutationType: { name: 'Mutation' },
+          types: [
+            {
+              name: 'Query',
+              kind: 'OBJECT',
+              fields: [
+                {
+                  name: 'invoice',
+                  args: [{ name: 'id', type: { kind: 'NON_NULL', name: 'ID' } }],
+                },
+                {
+                  name: 'publicFeed',
+                  args: [],
+                },
+              ],
+            },
+            {
+              name: 'Mutation',
+              kind: 'OBJECT',
+              fields: [
+                {
+                  name: 'updateUser',
+                  args: [{ name: 'input', type: { kind: 'NON_NULL', name: 'UserInput' } }],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    };
+
+    const summary = GraphQLParser.parseSchema(mockIntrospection);
+    assert.strictEqual(summary.queries.length, 2);
+    assert.strictEqual(summary.mutations.length, 1);
+
+    const invoiceQuery = summary.queries.find(q => q.name === 'invoice');
+    assert.ok(invoiceQuery);
+    assert.strictEqual(invoiceQuery?.isObjectTarget, true, 'invoice query with id arg MUST be tagged as object target');
+
+    const publicQuery = summary.queries.find(q => q.name === 'publicFeed');
+    assert.ok(publicQuery);
+    assert.strictEqual(publicQuery?.isObjectTarget, false, 'publicFeed with no args must NOT be an object target');
+  });
+
+  test('Upgrade 10: AshbornEngine strikes GraphQL endpoint, confirms BOLA/IDOR with proof receipt', async () => {
+    const engine = new AshbornEngine({
+      ledgerBaseDir: 'targets_test_temp_gql',
+    });
+
+    const scope: TargetScope = {
+      name: 'GraphQL Test Target',
+      baseUrl: BASE_URL,
+      allowedHosts: ['127.0.0.1'],
+      rulesOfEngagement: 'Testing',
+    };
+
+    const context: DualSessionContext = {
+      victimToken: 'victim_token',
+      victimResourceId: VICTIM_ID,
+      victimSecretIdentifier: VICTIM_SECRET,
+      attackerToken: ATTACKER_TOKEN,
+    };
+
+    // 1. Fetch live introspection from our test server
+    const introPayload = GraphQLParser.generateIntrospectionPayload();
+    const introRes = await fetch(`${BASE_URL}/graphql`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: introPayload,
+    });
+    const introData = (await introRes.json()) as Record<string, unknown>;
+
+    // 2. Execute GraphQL audit
+    const result = await engine.auditTargetWithGraphQL(scope, '/graphql', introData, context, 'graphql_program');
+
+    assert.ok(result.endpointsScanned >= 2, 'Must scan queries from schema');
+    assert.strictEqual(result.highValueTargets, 1, 'Must identify 1 high-value query (invoice)');
+    assert.strictEqual(result.confirmedReceipts.length, 1, 'Must confirm 1 GraphQL IDOR receipt');
+
+    const receipt = result.confirmedReceipts[0];
+    assert.strictEqual(receipt.statusCode, 200);
+    assert.strictEqual(receipt.leakFingerprint, VICTIM_SECRET);
+    assert.ok(receipt.rawCurl.includes('/graphql'));
+    assert.ok(receipt.rawCurl.includes('invoice'));
+
+    // Clean up temporary test dir
+    import('fs').then(fs => {
+      try { fs.rmSync('targets_test_temp_gql', { recursive: true, force: true }); } catch {}
     });
   });
 });

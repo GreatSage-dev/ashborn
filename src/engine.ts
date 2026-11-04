@@ -1,5 +1,8 @@
 import { BundleExtractor } from './scout/bundle_extractor.js';
 import { OpenApiParser, OpenApiSchema } from './scout/openapi_parser.js';
+import { PostmanParser, PostmanCollection } from './scout/postman_parser.js';
+import { GraphQLParser } from './scout/graphql_parser.js';
+import { GraphQLStriker } from './strikers/graphql_striker.js';
 import { CurlParser } from './scout/curl_parser.js';
 import { TargetLedger } from './storage/target_ledger.js';
 import { HaddixMatrix } from './engine/haddix_matrix.js';
@@ -99,6 +102,80 @@ export class AshbornEngine {
   ): Promise<AuditSessionResult> {
     const endpoints = OpenApiParser.parseSchema(schema);
     return this.executeAudit(scope, endpoints, context, programName);
+  }
+
+  /**
+   * INGRESS 4: Runs an audit using an exported Postman Collection (v2.0 or v2.1).
+   */
+  public async auditTargetWithPostman(
+    scope: TargetScope,
+    collection: string | PostmanCollection,
+    context: DualSessionContext,
+    programName?: string
+  ): Promise<AuditSessionResult> {
+    const endpoints = PostmanParser.parseCollection(collection);
+    return this.executeAudit(scope, endpoints, context, programName);
+  }
+
+  /**
+   * INGRESS 5: Runs an audit against a GraphQL endpoint via introspection or schema.
+   */
+  public async auditTargetWithGraphQL(
+    scope: TargetScope,
+    graphqlPath: string,
+    introspectionData: string | Record<string, unknown>,
+    context: DualSessionContext,
+    programName?: string
+  ): Promise<AuditSessionResult> {
+    const startTime = performance.now();
+    const targetProgram = programName || scope.name;
+    const summary = GraphQLParser.parseSchema(introspectionData);
+
+    const fullUrl = `${scope.baseUrl.replace(/\/$/, '')}/${graphqlPath.replace(/^\//, '')}`;
+    const chamber = new BlastChamber({
+      timeoutMs: this.options.timeoutMs ?? 5000,
+      cadenceDelayMs: this.options.cadenceDelayMs,
+      allowedHosts: scope.allowedHosts,
+    });
+
+    const confirmedReceipts: AshbornReceipt[] = [];
+    const reports: FormattedReport[] = [];
+    let candidatesTested = 0;
+    let blockedByGovernor = 0;
+
+    // Test queries with object ID arguments (BOLA)
+    const targetQueries = summary.queries.filter(q => q.isObjectTarget);
+    for (const q of targetQueries) {
+      const candidates = GraphQLStriker.generateQueryCandidates(q, fullUrl, context);
+      for (const cand of candidates) {
+        const safety = SafetyGovernor.isBlocked(cand.targetUrl, cand.method, scope.outOfScopePatterns, scope.allowedHosts);
+        if (safety.blocked) {
+          blockedByGovernor++;
+          continue;
+        }
+        candidatesTested++;
+        const { result, receipt } = await chamber.executeCandidate(cand);
+        if (result.passed && receipt) {
+          const isNew = this.ledger.recordReceipt(targetProgram, receipt);
+          if (isNew) {
+            confirmedReceipts.push(receipt);
+            reports.push(ReportGenerator.generateHackerOneReport(receipt));
+          }
+        }
+      }
+    }
+
+    const durationMs = Number((performance.now() - startTime).toFixed(2));
+    return {
+      scope,
+      endpointsScanned: summary.queries.length + summary.mutations.length,
+      highValueTargets: targetQueries.length,
+      blockedByGovernor,
+      candidatesTested,
+      confirmedReceipts,
+      reports,
+      durationMs,
+    };
   }
 
   /**

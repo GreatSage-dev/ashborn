@@ -8,6 +8,7 @@
   "scripts": {
     "build": "node scripts/build_cockpit.js && tsc",
     "test": "tsc && node --test dist/ashborn.test.js",
+    "audit:emet": "tsc && node dist/audit_emet.js",
     "benchmark": "tsc && node dist/run_benchmark.js",
     "demo": "tsc && node dist/cli.js",
     "serve": "tsc && node dist/server.js",

@@ -18,5 +18,10 @@ export * from './strikers/graphql_striker.js';
 export * from './governor/safety_governor.js';
 export * from './chamber/blast_chamber.js';
 export * from './reporter/markdown_receipt.js';
+export * from './scout/solidity_scout.js';
+export * from './strikers/solidity_access_striker.js';
+export * from './strikers/solidity_reentrancy_striker.js';
+export * from './strikers/solidity_proxy_striker.js';
+export * from './reporter/foundry_poc_generator.js';
 export * from './engine.js';
 

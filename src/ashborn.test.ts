@@ -18,6 +18,11 @@ import {
   BlastChamber, 
   ReportGenerator, 
   AshbornEngine,
+  SolidityScout,
+  SolidityAccessStriker,
+  SolidityReentrancyStriker,
+  SolidityProxyStriker,
+  FoundryPocGenerator,
   DualSessionContext,
   TargetScope
 } from './index.js';
@@ -692,5 +697,146 @@ describe('ASHBORN AUTONOMOUS HUNTER - SYSTEM TEST SUITE', () => {
     import('fs').then(fs => {
       try { fs.rmSync('targets_test_temp_gql', { recursive: true, force: true }); } catch {}
     });
+  });
+
+  test('Upgrade 11: SolidityScout parses contracts, state variables, and functions', () => {
+    const sampleSolidity = `
+      // SPDX-License-Identifier: MIT
+      pragma solidity ^0.8.20;
+
+      contract SimpleVault is Ownable {
+          address public vaultOwner;
+          mapping(address => uint256) public balances;
+
+          event Deposited(address indexed user, uint256 amount);
+
+          modifier onlyAuthorized() {
+              require(msg.sender == vaultOwner, "Not authorized");
+              _;
+          }
+
+          function deposit() external payable {
+              balances[msg.sender] += msg.value;
+              emit Deposited(msg.sender, msg.value);
+          }
+
+          function getBalance(address user) external view returns (uint256) {
+              return balances[user];
+          }
+      }
+    `;
+
+    const contracts = SolidityScout.parseSource(sampleSolidity, 'SimpleVault.sol');
+    assert.strictEqual(contracts.length, 1);
+    const vault = contracts[0];
+    assert.strictEqual(vault.name, 'SimpleVault');
+    assert.strictEqual(vault.kind, 'contract');
+    assert.deepStrictEqual(vault.inheritance, ['Ownable']);
+    assert.strictEqual(vault.modifiers.length, 1);
+    assert.strictEqual(vault.modifiers[0], 'onlyAuthorized');
+    assert.strictEqual(vault.functions.length, 2);
+
+    const depositFn = vault.functions.find(f => f.name === 'deposit');
+    assert.ok(depositFn);
+    assert.strictEqual(depositFn?.visibility, 'external');
+    assert.strictEqual(depositFn?.stateMutability, 'payable');
+  });
+
+  test('Upgrade 12: Solidity Strikers detect Missing Access Control and Reentrancy CEI violations', () => {
+    const vulnerableContract = `
+      // SPDX-License-Identifier: MIT
+      pragma solidity ^0.8.20;
+
+      contract VulnerableDeFiBank {
+          address public owner;
+          mapping(address => uint256) public balances;
+
+          function initialize(address _owner) external {
+              owner = _owner;
+          }
+
+          // Vulnerability 1: Missing Access Control (anyone can drain all contract ETH)
+          function emergencyDrainAll(address payable recipient) external {
+              recipient.transfer(address(this).balance);
+          }
+
+          // Vulnerability 2: Reentrancy (external call BEFORE state update, no nonReentrant)
+          function withdraw(uint256 amount) external {
+              require(balances[msg.sender] >= amount, "Insufficient");
+              (bool sent, ) = msg.sender.call{value: amount}("");
+              require(sent, "Failed");
+              balances[msg.sender] -= amount;
+          }
+
+          // Safe function with proper access control
+          function setFee(uint256 newFee) external onlyOwner {
+              // protected
+          }
+      }
+    `;
+
+    const contracts = SolidityScout.parseSource(vulnerableContract, 'VulnerableDeFiBank.sol');
+    assert.strictEqual(contracts.length, 1);
+    const bank = contracts[0];
+
+    // 1. Strike Access Control
+    const accessFindings = SolidityAccessStriker.strike(bank);
+    assert.strictEqual(accessFindings.length, 1);
+    assert.strictEqual(accessFindings[0].functionName, 'emergencyDrainAll');
+    assert.strictEqual(accessFindings[0].vector, 'SOLIDITY_MISSING_ACCESS_CONTROL');
+    assert.strictEqual(accessFindings[0].severity, 'CRITICAL');
+
+    // 2. Strike Reentrancy
+    const reentrancyFindings = SolidityReentrancyStriker.strike(bank);
+    assert.strictEqual(reentrancyFindings.length, 1);
+    assert.strictEqual(reentrancyFindings[0].functionName, 'withdraw');
+    assert.strictEqual(reentrancyFindings[0].vector, 'SOLIDITY_REENTRANCY_VIOLATION');
+    assert.strictEqual(reentrancyFindings[0].severity, 'CRITICAL');
+
+    // 3. Strike Proxy Initializer
+    const proxyFindings = SolidityProxyStriker.strike(bank);
+    assert.strictEqual(proxyFindings.length, 1);
+    assert.strictEqual(proxyFindings[0].functionName, 'initialize');
+    assert.strictEqual(proxyFindings[0].vector, 'SOLIDITY_UNPROTECTED_INITIALIZER');
+  });
+
+  test('Upgrade 13: AshbornEngine executes smart contract audit and generates Foundry PoCs', () => {
+    const engine = new AshbornEngine();
+
+    const vulnerableSource = `
+      pragma solidity ^0.8.20;
+
+      contract YieldVault {
+          mapping(address => uint256) public balances;
+
+          function drainVault(address payable recipient) external {
+              recipient.transfer(address(this).balance);
+          }
+
+          function exitPool(uint256 shares) external {
+              (bool ok, ) = msg.sender.call{value: shares}("");
+              require(ok);
+              balances[msg.sender] = 0;
+          }
+      }
+    `;
+
+    const audit = engine.auditSoliditySource([
+      { path: 'YieldVault.sol', content: vulnerableSource }
+    ], 'YieldProtocol');
+
+    assert.strictEqual(audit.contractsAnalyzed, 1);
+    assert.strictEqual(audit.findings.length, 2);
+
+    const accessFinding = audit.findings.find(f => f.vector === 'SOLIDITY_MISSING_ACCESS_CONTROL');
+    assert.ok(accessFinding);
+    assert.strictEqual(accessFinding?.functionName, 'drainVault');
+    assert.ok(accessFinding?.foundryPocCode?.includes('forge-std/Test.sol'));
+    assert.ok(accessFinding?.foundryPocCode?.includes('test_exploit_unauthorizedAccessDrain'));
+
+    const reentrancyFinding = audit.findings.find(f => f.vector === 'SOLIDITY_REENTRANCY_VIOLATION');
+    assert.ok(reentrancyFinding);
+    assert.strictEqual(reentrancyFinding?.functionName, 'exitPool');
+    assert.ok(reentrancyFinding?.foundryPocCode?.includes('test_exploit_reentrancyDrain'));
   });
 });

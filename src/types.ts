@@ -10,7 +10,10 @@ export type AttackVector =
   | 'IDOR_MUTATE_VIOLATION'
   | 'JWT_ALG_NONE_BYPASS'
   | 'JWT_SIGNATURE_STRIPPED'
-  | 'MASS_ASSIGNMENT_VIOLATION';
+  | 'MASS_ASSIGNMENT_VIOLATION'
+  | 'SOLIDITY_MISSING_ACCESS_CONTROL'
+  | 'SOLIDITY_REENTRANCY_VIOLATION'
+  | 'SOLIDITY_UNPROTECTED_INITIALIZER';
 
 export interface TargetScope {
   name: string;
@@ -100,4 +103,39 @@ export interface FormattedReport {
   impact: string;
   remediation: string;
   tamperProofReceipt: AshbornReceipt;
+}
+
+export interface SolidityFunction {
+  name: string;
+  visibility: 'public' | 'external' | 'internal' | 'private';
+  stateMutability: 'pure' | 'view' | 'payable' | 'nonpayable';
+  modifiers: string[];
+  parameters: string[];
+  body: string;
+  rawSource: string;
+  startLine: number;
+}
+
+export interface SolidityContract {
+  name: string;
+  kind: 'contract' | 'interface' | 'library' | 'abstract';
+  inheritance: string[];
+  stateVariables: Array<{ name: string; type: string; visibility: string }>;
+  functions: SolidityFunction[];
+  modifiers: string[];
+  filePath: string;
+  rawSource: string;
+}
+
+export interface SolidityFinding {
+  contractName: string;
+  functionName: string;
+  filePath: string;
+  line: number;
+  vector: AttackVector;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM';
+  description: string;
+  impact: string;
+  remediation: string;
+  foundryPocCode?: string;
 }

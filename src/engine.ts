@@ -11,12 +11,18 @@ import { MassAssignmentStriker } from './strikers/mass_assignment_striker.js';
 import { SafetyGovernor } from './governor/safety_governor.js';
 import { BlastChamber } from './chamber/blast_chamber.js';
 import { ReportGenerator } from './reporter/markdown_receipt.js';
+import { SolidityScout } from './scout/solidity_scout.js';
+import { SolidityAccessStriker } from './strikers/solidity_access_striker.js';
+import { SolidityReentrancyStriker } from './strikers/solidity_reentrancy_striker.js';
+import { SolidityProxyStriker } from './strikers/solidity_proxy_striker.js';
+import { FoundryPocGenerator } from './reporter/foundry_poc_generator.js';
 import { 
   TargetScope, 
   DualSessionContext, 
   DiscoveredEndpoint, 
   AshbornReceipt, 
-  FormattedReport 
+  FormattedReport,
+  SolidityFinding
 } from './types.js';
 
 export interface AuditSessionResult {
@@ -181,6 +187,51 @@ export class AshbornEngine {
   /**
    * Core execution pipeline with Safety Governor, Haddix Matrix, and Target Ledger.
    */
+  /**
+   * INGRESS 6: Smart Contract & Solidity Codebase Audit
+   * Analyzes Solidity files for missing access control, reentrancy, and proxy initialization traps.
+   * Generates Foundry exploit PoCs conforming to Immunefi & Code4rena standards.
+   */
+  public auditSoliditySource(
+    sources: Array<{ path: string; content: string }>,
+    programName = 'smart-contracts'
+  ): {
+    contractsAnalyzed: number;
+    findings: SolidityFinding[];
+    durationMs: number;
+  } {
+    const startTime = performance.now();
+    const allFindings: SolidityFinding[] = [];
+    let contractsCount = 0;
+
+    for (const source of sources) {
+      const contracts = SolidityScout.parseSource(source.content, source.path);
+      contractsCount += contracts.length;
+
+      for (const contract of contracts) {
+        // Strike 1: Access Control
+        const accessFindings = SolidityAccessStriker.strike(contract);
+        // Strike 2: Reentrancy (CEI)
+        const reentrancyFindings = SolidityReentrancyStriker.strike(contract);
+        // Strike 3: Unprotected Initializer
+        const proxyFindings = SolidityProxyStriker.strike(contract);
+
+        const combined = [...accessFindings, ...reentrancyFindings, ...proxyFindings];
+        for (const finding of combined) {
+          finding.foundryPocCode = FoundryPocGenerator.generate(finding);
+          allFindings.push(finding);
+        }
+      }
+    }
+
+    const durationMs = Number((performance.now() - startTime).toFixed(2));
+    return {
+      contractsAnalyzed: contractsCount,
+      findings: allFindings,
+      durationMs,
+    };
+  }
+
   private async executeAudit(
     scope: TargetScope,
     endpoints: DiscoveredEndpoint[],

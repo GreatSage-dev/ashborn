@@ -120,9 +120,29 @@ Keep answers concise, actionable, and formatted in clean Markdown. Never give fl
     const provider = config.provider || 'builtin';
     const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content || '';
 
+    // Check client-supplied key or server-side environment variables
+    const envKey =
+      (provider === 'groq' && process.env.GROQ_API_KEY) ||
+      (provider === 'openrouter' && process.env.OPENROUTER_API_KEY) ||
+      (provider === 'gemini' && (process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY)) ||
+      (provider === 'github' && (process.env.GITHUB_TOKEN || process.env.GITHUB_MODELS_TOKEN)) ||
+      process.env.COPILOT_API_KEY;
+
+    const apiKey = (config.apiKey && config.apiKey.trim()) || (envKey && envKey.trim()) || '';
+
     // If provider is builtin or no API key is provided for cloud providers, use tactical fallback
-    if (provider === 'builtin' || (!config.apiKey && provider !== 'local')) {
-      return this.executeTacticalFallback(lastUserMessage, context);
+    if (provider === 'builtin' || (!apiKey && provider !== 'local')) {
+      const fallback = this.executeTacticalFallback(lastUserMessage, context);
+      if (provider !== 'builtin') {
+        const preset = COPILOT_PROVIDER_PRESETS[provider];
+        return {
+          reply: `> 💡 **Ashborn Tactical Brain (Zero-Key Mode):**\n> To unlock direct cloud inference with **${preset.name}** (${config.model || preset.defaultModel}), grab a free key in 15 seconds at [${preset.docUrl}](${preset.docUrl}) (no credit card needed) and paste it into the drawer key box, or add \`${provider.toUpperCase()}_API_KEY=...\` to your \`.env\` file.\n\n${fallback.reply}`,
+          provider: 'builtin',
+          model: 'ashborn-tactical-v1',
+          action: fallback.action,
+        };
+      }
+      return fallback;
     }
 
     const preset = COPILOT_PROVIDER_PRESETS[provider];
@@ -139,8 +159,8 @@ Keep answers concise, actionable, and formatted in clean Markdown. Never give fl
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      if (config.apiKey) {
-        headers['Authorization'] = `Bearer ${config.apiKey.trim()}`;
+      if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
       }
 
       const res = await fetch(endpointUrl, {

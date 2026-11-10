@@ -16,6 +16,21 @@ const ledger = new TargetLedger();
 const autopilot = new CdpAutopilot();
 const copilotEngine = new CopilotEngine();
 
+// Auto-load .env file if running locally
+if (existsSync('.env')) {
+  try {
+    const envContent = readFileSync('.env', 'utf-8');
+    for (const line of envContent.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)?$/);
+      if (match && !process.env[match[1]]) {
+        process.env[match[1]] = match[2].trim().replace(/^['"]|['"]$/g, '');
+      }
+    }
+  } catch {}
+}
+
 function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
     let body = '';

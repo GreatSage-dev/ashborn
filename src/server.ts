@@ -304,6 +304,30 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
     }
   }
 
+  if (pathname === '/api/autopilot/guest-attacker' && method === 'POST') {
+    try {
+      const resObj = autopilot.setAttackerAsGuest();
+      return sendJson(res, 200, { ...resObj, status: autopilot.getStatus() });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return sendJson(res, 400, { error: message });
+    }
+  }
+
+  if (pathname === '/api/autopilot/open-tab' && method === 'POST') {
+    try {
+      const payload = await readJsonBody(req);
+      const urlToOpen = typeof payload.url === 'string' && payload.url.trim() ? payload.url.trim() : 'https://white.market';
+      const cdpHttpUrl = typeof payload.cdpHttpUrl === 'string' ? payload.cdpHttpUrl : 'http://127.0.0.1:9222';
+      const newTabRes = await fetch(`${cdpHttpUrl}/json/new?${encodeURIComponent(urlToOpen)}`, { method: 'PUT' });
+      const newTab = await newTabRes.json();
+      return sendJson(res, 200, { tab: newTab });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return sendJson(res, 400, { error: message });
+    }
+  }
+
   if (pathname === '/api/autopilot/connect' && method === 'POST') {
     try {
       const payload = await readJsonBody(req);

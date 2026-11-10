@@ -336,6 +336,16 @@ export async function launchDebugChrome(
   try {
     const checkRes = await fetch(`${cdpHttpUrl}/json/version`);
     if (checkRes.ok) {
+      // Chrome is already running. Ensure targetUrl is open and activate it.
+      try {
+        const targets = await CdpScout.listTargets(cdpHttpUrl);
+        const match = targets.find(t => t.url.includes(new URL(targetUrl).hostname));
+        if (match) {
+          await fetch(`${cdpHttpUrl}/json/activate/${match.id}`).catch(() => {});
+        } else {
+          await fetch(`${cdpHttpUrl}/json/new?${encodeURIComponent(targetUrl)}`, { method: 'PUT' }).catch(() => {});
+        }
+      } catch {}
       return { launched: false, alreadyRunning: true, cdpHttpUrl, profileDir: 'existing' };
     }
   } catch {}
@@ -383,6 +393,15 @@ export async function launchDebugChrome(
     try {
       const res = await fetch(`${cdpHttpUrl}/json/version`);
       if (res.ok) {
+        // Bring initial window and tab to front
+        setTimeout(async () => {
+          try {
+            const targets = await CdpScout.listTargets(cdpHttpUrl);
+            if (targets.length > 0) {
+              await fetch(`${cdpHttpUrl}/json/activate/${targets[0].id}`).catch(() => {});
+            }
+          } catch {}
+        }, 600);
         return { launched: true, alreadyRunning: false, cdpHttpUrl, browserPath, profileDir };
       }
     } catch {}
@@ -463,6 +482,32 @@ export class CdpAutopilot {
     this.log(`Attacker (User B) session locked: ${authSummary}`);
 
     // Re-queue previously skipped items that were waiting on Attacker session
+    for (const item of this.capturedEndpoints) {
+      if (item.auditStatus === 'SKIPPED_NO_ATTACKER') {
+        item.auditStatus = 'CAPTURED';
+        item.auditReason = undefined;
+        this.strikeQueue.push(item);
+      }
+    }
+    void this.processQueue();
+
+    return { hasAttackerSession: true, attackerAuthSummary: authSummary };
+  }
+
+  /**
+   * Sets the Attacker (User B) session to an Unauthenticated Guest.
+   * This immediately audits all captured endpoints to verify whether private victim data
+   * leaks to unauthenticated visitors (Missing Authentication / BOLA).
+   */
+  public setAttackerAsGuest(): { hasAttackerSession: boolean; attackerAuthSummary: string } {
+    const authSummary = 'Anonymous Guest (Auth Bypass / Info Disclosure)';
+    this.attackerSession = {
+      headers: {},
+      token: 'unauthenticated_guest_token',
+      authSummary,
+    };
+    this.log(`Attacker session set to: ${authSummary}`);
+
     for (const item of this.capturedEndpoints) {
       if (item.auditStatus === 'SKIPPED_NO_ATTACKER') {
         item.auditStatus = 'CAPTURED';

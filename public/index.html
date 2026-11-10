@@ -1383,6 +1383,7 @@
             <span class="brand-pill" id="autopilot-pill">disconnected</span>
           </div>
 
+          <div id="autopilot-status-box" style="display: none; margin-bottom: 16px; padding: 12px 16px; border-radius: var(--radius-sm); background: var(--success-soft); color: var(--success); font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; border: 1px solid rgba(46,125,50,0.25);"></div>
           <div id="autopilot-error-box" style="display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--danger-soft); color: var(--danger); font-family: var(--font-mono); font-size: 12px;"></div>
 
           <div class="config-layout">
@@ -1391,7 +1392,7 @@
                 <label class="form-label">1. Target URL to Open in Debug Chrome</label>
                 <div style="display: flex; gap: 8px;">
                   <input type="text" id="autopilot-launch-url" class="form-input" value="https://white.market" placeholder="https://target.com">
-                  <button type="button" class="btn btn-outline" onclick="launchAutopilotChrome()" style="padding: 8px 16px; font-size: 12.5px;">Launch Chrome</button>
+                  <button type="button" id="autopilot-launch-btn" class="btn btn-outline" onclick="launchAutopilotChrome()" style="padding: 8px 16px; font-size: 12.5px;">Launch Chrome</button>
                 </div>
               </div>
 
@@ -1443,7 +1444,11 @@
                 <textarea id="autopilot-attacker-curl" class="form-textarea" style="height: 84px; font-size: 11px;" placeholder="Or paste 1 cURL from Account B once (supports -b cookies, X-XSRF-TOKEN, Bearer)..."></textarea>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
                   <span id="autopilot-attacker-badge" style="font-family: var(--font-mono); font-size: 11px; color: var(--muted);">Attacker: Not configured</span>
-                  <button type="button" class="btn btn-outline" onclick="saveAttackerCurl()" style="padding: 6px 14px; font-size: 12px;">Save Attacker cURL</button>
+                  <div style="display: flex; gap: 6px;">
+                    <button type="button" class="btn btn-outline" onclick="setGuestAttacker()" style="padding: 4px 10px; font-size: 11px; border-color: var(--accent); color: var(--accent);" title="Test whether private endpoints leak to unauthenticated visitors">⚡ Test as Guest</button>
+                    <button type="button" class="btn btn-outline" onclick="openNewTabForAccountB()" style="padding: 4px 10px; font-size: 11px;" title="Open a new tab for Account B in Chrome">➕ 2nd Tab</button>
+                    <button type="button" class="btn btn-outline" onclick="saveAttackerCurl()" style="padding: 4px 10px; font-size: 11px;">Save cURL</button>
+                  </div>
                 </div>
               </div>
 
@@ -1715,9 +1720,24 @@
       }
     }
 
+    function showAutopilotStatus(msg) {
+      const box = document.getElementById('autopilot-status-box');
+      if (!box) return;
+      if (!msg) {
+        box.style.display = 'none';
+        box.textContent = '';
+      } else {
+        box.style.display = 'block';
+        box.textContent = msg;
+      }
+    }
+
     async function launchAutopilotChrome() {
       showAutopilotError('');
+      showAutopilotStatus('🚀 Spawning Chrome with remote debugging on port 9222...');
       const targetUrl = document.getElementById('autopilot-launch-url').value.trim() || 'https://white.market';
+      const launchBtn = document.getElementById('autopilot-launch-btn');
+      if (launchBtn) launchBtn.textContent = 'Launching...';
       try {
         const res = await autopilotFetch('/api/autopilot/launch-chrome', {
           method: 'POST',
@@ -1727,9 +1747,21 @@
         const data = await res.json();
         if (!res.ok || data.error) throw new Error(data.error || 'Failed to launch Chrome');
         await refreshAutopilotTabs();
+
+        // Auto-connect to victim tab immediately so the user gets live streaming without extra steps
+        const victimSelect = document.getElementById('autopilot-victim-tab');
+        if (victimSelect && victimSelect.value) {
+          await connectAutopilot();
+          showAutopilotStatus('🟢 Chrome Connected & Live! Switch to the Chrome window on your screen, log into white.market, and browse around. Ashborn is listening and testing traffic live in the background!');
+        } else {
+          showAutopilotStatus('🟢 Chrome launched! Select your tab above and click "Start Auto-Pilot".');
+        }
       } catch (err) {
+        showAutopilotStatus('');
         const hint = !IS_LOCAL_ORIGIN ? ' (Make sure Ashborn local bridge is running: npm start)' : '';
         showAutopilotError((err.message || String(err)) + hint);
+      } finally {
+        if (launchBtn) launchBtn.textContent = 'Launch Chrome';
       }
     }
 
@@ -1751,17 +1783,54 @@
         }
 
         const optionsHtml = targets.map(t =>
-          `<option value="${escapeHtml(t.id)}">${escapeHtml((t.title || 'Tab').slice(0, 40))} — ${escapeHtml(t.url.slice(0, 45))}</option>`
+          `<option value="${escapeHtml(t.id)}">${escapeHtml(t.title || 'Tab')} — ${escapeHtml(t.url)}</option>`
         ).join('');
 
         victimSelect.innerHTML = optionsHtml;
         attackerSelect.innerHTML = '<option value="">Select Incognito Account B tab...</option>' + optionsHtml;
 
-        if (prevVictim && targets.some(t => t.id === prevVictim)) victimSelect.value = prevVictim;
-        if (prevAttacker && targets.some(t => t.id === prevAttacker)) attackerSelect.value = prevAttacker;
+        if (prevVictim && targets.some(t => t.id === prevVictim)) {
+          victimSelect.value = prevVictim;
+        } else if (targets.length > 0) {
+          victimSelect.value = targets[0].id;
+        }
+        if (prevAttacker && targets.some(t => t.id === prevAttacker)) {
+          attackerSelect.value = prevAttacker;
+        }
       } catch (err) {
         const hint = !IS_LOCAL_ORIGIN ? ' (Run "npm start" on your PC to enable Chrome Auto-Pilot from Vercel)' : '';
         showAutopilotError((err.message || String(err)) + hint);
+      }
+    }
+
+    async function setGuestAttacker() {
+      showAutopilotError('');
+      try {
+        const res = await autopilotFetch('/api/autopilot/guest-attacker', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Failed to set Guest attacker');
+        renderAutopilotStatus(data.status);
+        showAutopilotStatus('⚡ Attacker session set to Anonymous Guest! Any captured private endpoints will now be audited for unauthenticated exposure.');
+      } catch (err) {
+        showAutopilotError(err.message || String(err));
+      }
+    }
+
+    async function openNewTabForAccountB() {
+      showAutopilotError('');
+      const targetUrl = document.getElementById('autopilot-launch-url').value.trim() || 'https://white.market';
+      try {
+        const res = await autopilotFetch('/api/autopilot/open-tab', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: targetUrl })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Failed to open new tab');
+        await refreshAutopilotTabs();
+        showAutopilotStatus('➕ New tab opened in Chrome! Log into Account B on that tab, then select it from the dropdown and click "Grab Tab B".');
+      } catch (err) {
+        showAutopilotError(err.message || String(err));
       }
     }
 

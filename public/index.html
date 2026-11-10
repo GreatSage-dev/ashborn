@@ -1059,6 +1059,305 @@
       .nav-tabs { display: none; }
       .quick-actions { grid-template-columns: 1fr; }
     }
+
+    /* ─── COCKPIT TOP BAR & TAB WORKSPACE (PAVILION INSPIRED) ─── */
+    .cockpit-top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      margin-bottom: 20px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .cockpit-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+      font-family: var(--font-body);
+      color: var(--muted);
+    }
+
+    .cockpit-breadcrumb strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .cockpit-pills-cluster {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .cockpit-pill {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      background: rgba(0, 0, 0, 0.04);
+      color: var(--ink-secondary);
+      border: 1px solid var(--line);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .cockpit-pill.active {
+      background: var(--success-soft);
+      color: var(--success);
+      border-color: rgba(46, 125, 50, 0.2);
+    }
+
+    .cockpit-tab-pane {
+      display: none;
+      animation: tabFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .cockpit-tab-pane.active {
+      display: block;
+    }
+
+    @keyframes tabFadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── PAVILION-STYLE CO-PILOT SLIDE-OUT DRAWER ─── */
+    .copilot-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 440px;
+      max-width: 92vw;
+      background: #ffffff;
+      box-shadow: -8px 0 36px rgba(0, 0, 0, 0.12);
+      border-left: 1px solid var(--line-strong);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .copilot-drawer.open {
+      transform: translateX(0);
+    }
+
+    .copilot-drawer-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 14, 23, 0.28);
+      backdrop-filter: blur(2px);
+      z-index: 999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.24s ease;
+    }
+
+    .copilot-drawer-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .copilot-drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--line);
+      background: #fafaf8;
+    }
+
+    .copilot-drawer-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .copilot-drawer-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+      border: 1px solid var(--line-strong);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--ink);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .copilot-drawer-tab-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.15s;
+    }
+
+    .copilot-drawer-tab-btn:hover {
+      background: rgba(0, 0, 0, 0.04);
+      color: var(--ink);
+    }
+
+    .btn-ghost-sm {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .btn-ghost-sm:hover {
+      background: rgba(0, 0, 0, 0.05);
+      color: var(--ink);
+    }
+
+    .copilot-drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .copilot-drawer-footer {
+      padding: 14px 16px;
+      border-top: 1px solid var(--line);
+      background: #fafaf8;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .copilot-action-chips {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+
+    .copilot-action-chips::-webkit-scrollbar {
+      display: none;
+    }
+
+    .copilot-action-chip {
+      flex-shrink: 0;
+      padding: 5px 11px;
+      border-radius: var(--radius-full);
+      background: #ffffff;
+      border: 1px solid var(--line-strong);
+      font-size: 11px;
+      font-family: var(--font-body);
+      color: var(--ink-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .copilot-action-chip:hover {
+      background: var(--ink);
+      color: #ffffff;
+      border-color: var(--ink);
+    }
+
+    .copilot-pill-input-box {
+      border: 1px solid var(--line-strong);
+      border-radius: 20px;
+      background: #ffffff;
+      padding: 8px 10px 8px 14px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .copilot-pill-input-box:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .copilot-pill-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .copilot-pill-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      outline: none;
+      font-family: var(--font-body);
+      font-size: 13px;
+      color: var(--ink);
+    }
+
+    .copilot-pill-send {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: #ffffff;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s, background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .copilot-pill-send:hover {
+      background: #262447;
+      transform: scale(1.05);
+    }
+
+    .copilot-pill-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 10.5px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      padding-top: 2px;
+    }
+
+    .copilot-model-chip {
+      background: rgba(0, 0, 0, 0.04);
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--ink-secondary);
+    }
+
+    .copilot-model-chip:hover {
+      background: rgba(0, 0, 0, 0.08);
+      color: var(--ink);
+    }
   </style>
 </head>
 <body>
@@ -1079,7 +1378,12 @@
         <button class="nav-tab-btn" id="tab-cockpit" onclick="switchView('cockpit')">Cockpit</button>
       </div>
 
-      <div style="display: flex; gap: 8px;">
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="btn btn-outline" id="nav-btn-copilot" onclick="toggleCopilotDrawer()" title="Toggle Shadow Co-Pilot Drawer" style="display: inline-flex; align-items: center; gap: 6px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px; color: var(--accent);"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span>Co-Pilot</span>
+          <span class="brand-pill" style="padding: 1px 6px; font-size: 9.5px; background: var(--accent-soft); color: var(--accent);">AI</span>
+        </button>
         <button class="btn btn-outline" onclick="run1ClickDemo()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
           Demo
@@ -1238,16 +1542,22 @@
       <!-- Left Sidebar -->
       <div class="glass-card sidebar">
         <div class="sidebar-section">
-          <div class="sidebar-label">Navigate</div>
-          <button class="sidebar-link active" onclick="switchView('cockpit')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            Dashboard
+          <div class="sidebar-label">WORKSPACE TABS</div>
+          <button class="sidebar-link active" id="side-tab-autopilot" onclick="switchCockpitTab('autopilot')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+            Live Auto-Pilot
+            <span class="sidebar-badge" id="side-badge-autopilot" style="background: var(--success-soft); color: var(--success);">CDP</span>
           </button>
-          <button class="sidebar-link" onclick="document.getElementById('config-section').scrollIntoView({behavior:'smooth'})">
+          <button class="sidebar-link" id="side-tab-receipts" onclick="switchCockpitTab('receipts')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Receipts &amp; Proofs
+            <span class="sidebar-badge" id="side-badge-receipts">0</span>
+          </button>
+          <button class="sidebar-link" id="side-tab-strikers" onclick="switchCockpitTab('strikers')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            Configuration
+            Target &amp; Strikers
           </button>
-          <button class="sidebar-link" onclick="openCopilotSection()">
+          <button class="sidebar-link" id="side-tab-copilot" onclick="switchCockpitTab('copilot')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
             Shadow Co-Pilot
             <span class="sidebar-badge" style="background: var(--accent-soft); color: var(--accent);">AI</span>
@@ -1255,17 +1565,17 @@
         </div>
 
         <div class="sidebar-section">
-          <div class="sidebar-label">Strikers</div>
-          <button class="sidebar-link">
+          <div class="sidebar-label">Active Strikers</div>
+          <button class="sidebar-link" onclick="switchCockpitTab('strikers')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             IDOR / BOLA
             <span class="sidebar-badge">API1</span>
           </button>
-          <button class="sidebar-link">
+          <button class="sidebar-link" onclick="switchCockpitTab('strikers')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
             JWT Mutator
           </button>
-          <button class="sidebar-link">
+          <button class="sidebar-link" onclick="switchCockpitTab('strikers')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             Mass Assignment
             <span class="sidebar-badge">API3</span>
@@ -1274,9 +1584,9 @@
 
         <div class="sidebar-section">
           <div class="sidebar-label">Safety</div>
-          <button class="sidebar-link">
+          <button class="sidebar-link" onclick="switchCockpitTab('strikers')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            Governor
+            Governor Active
           </button>
         </div>
       </div>
@@ -1284,375 +1594,515 @@
       <!-- Main Content -->
       <div class="cockpit-main">
 
-        <!-- Welcome Card -->
-        <div class="glass-card cockpit-welcome">
-          <h2>Welcome, Shadow Monarch</h2>
-          <p>Select a quick action below or configure a target to begin scanning.</p>
-        </div>
-
-        <!-- Quick Action Cards (SETO-style) -->
-        <div class="quick-actions">
-          <div class="glass-card quick-action-card" onclick="run1ClickDemo()">
-            <div class="qa-icon amber">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            </div>
-            <h4>1-Click Simulation</h4>
-            <p>Run a full audit against the local demo server instantly.</p>
+        <!-- Top Breadcrumb & Status Bar (Pavilion Style) -->
+        <div class="glass-card cockpit-top-bar">
+          <div class="cockpit-breadcrumb">
+            <span>Cockpit</span>
+            <span>/</span>
+            <strong id="cockpit-tab-title">Live Auto-Pilot</strong>
           </div>
-          <div class="glass-card quick-action-card" onclick="runLiveBenchmark()">
-            <div class="qa-icon rose">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </div>
-            <h4>10-Scenario Benchmark</h4>
-            <p>Prove 100% precision &amp; 0 false alarms against real CVEs.</p>
-          </div>
-          <div class="glass-card quick-action-card" onclick="openAutopilot()">
-            <div class="qa-icon" style="background: rgba(188, 124, 51, 0.14); color: var(--accent);">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
-            </div>
-            <h4>Chrome Auto-Pilot (CDP)</h4>
-            <p>Browse normally while Ashborn intercepts &amp; tests APIs live.</p>
-          </div>
-          <div class="glass-card quick-action-card" onclick="openCurlIngress()">
-            <div class="qa-icon" style="background: rgba(46, 125, 50, 0.10); color: var(--success);">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg>
-            </div>
-            <h4>cURL Ingress (Lostsec)</h4>
-            <p>Paste browser cURLs &amp; strike via the 4-stage Haddix matrix.</p>
-          </div>
-          <div class="glass-card quick-action-card" onclick="document.getElementById('config-section').scrollIntoView({behavior:'smooth'})">
-            <div class="qa-icon violet">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            </div>
-            <h4>Configure Target</h4>
-            <p>Set up scope, credentials, and custom attack payloads.</p>
+          <div class="cockpit-pills-cluster">
+            <span class="cockpit-pill" id="pill-cdp-status">
+              <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--muted);"></span>
+              CDP Standby
+            </span>
+            <span class="cockpit-pill" id="pill-scanned-count">0 Scanned</span>
+            <span class="cockpit-pill" id="pill-confirmed-count">0 Confirmed</span>
+            <button type="button" class="btn btn-outline" onclick="toggleCopilotDrawer()" style="padding: 5px 14px; font-size: 11.5px; border-radius: 999px; gap: 6px;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; color: var(--accent);"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              <span>Co-Pilot Drawer</span>
+            </button>
           </div>
         </div>
 
-        <!-- Telemetry Row -->
-        <div class="telemetry-row">
-          <div class="glass-card stat-card">
-            <div class="stat-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              Scanned
-            </div>
-            <div class="stat-val" id="stat-scanned">0</div>
-          </div>
-          <div class="glass-card stat-card">
-            <div class="stat-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              High Value
-            </div>
-            <div class="stat-val" id="stat-high-val">0</div>
-          </div>
-          <div class="glass-card stat-card">
-            <div class="stat-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-              Blocked
-            </div>
-            <div class="stat-val danger" id="stat-blocked">0</div>
-          </div>
-          <div class="glass-card stat-card">
-            <div class="stat-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-              Confirmed
-            </div>
-            <div class="stat-val accent" id="stat-confirmed">0</div>
-          </div>
-        </div>
+        <!-- ════════ TAB 1: LIVE AUTO-PILOT ════════ -->
+        <div id="cockpit-tab-autopilot" class="cockpit-tab-pane active">
 
-        <!-- Status Banner -->
-        <div class="status-banner" id="status-banner">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
-          Audit in progress — executing cross-tenant blast chamber probes...
-        </div>
-
-        <!-- Receipt Stream -->
-        <div id="receipts-container">
-          <div class="glass-card empty-state">
-            <div class="empty-state-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </div>
-            <h4>Blast Chamber Standby</h4>
-            <p>No active scan. Enter target details or run a 1-Click Simulation to begin.</p>
-          </div>
-        </div>
-
-        <!-- Chrome DevTools Auto-Pilot Panel -->
-        <div class="glass-card config-panel" id="autopilot-section">
-          <div class="config-panel-header">
-            <h3>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
-              Live Chrome Auto-Pilot (CDP)
-            </h3>
-            <span class="brand-pill" id="autopilot-pill">disconnected</span>
+          <!-- Welcome Card -->
+          <div class="glass-card cockpit-welcome" style="margin-bottom: 20px;">
+            <h2>Live Chrome Auto-Pilot (CDP)</h2>
+            <p>Ashborn intercepts browser traffic via Chrome DevTools Protocol &amp; executes cross-tenant blast chamber tests in real time.</p>
           </div>
 
-          <div id="autopilot-status-box" style="display: none; margin-bottom: 16px; padding: 12px 16px; border-radius: var(--radius-sm); background: var(--success-soft); color: var(--success); font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; border: 1px solid rgba(46,125,50,0.25);"></div>
-          <div id="autopilot-error-box" style="display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--danger-soft); color: var(--danger); font-family: var(--font-mono); font-size: 12px;"></div>
-
-          <div class="config-layout">
-            <div>
-              <div class="form-group">
-                <label class="form-label">1. Target URL to Open in Debug Chrome</label>
-                <div style="display: flex; gap: 8px;">
-                  <input type="text" id="autopilot-launch-url" class="form-input" value="https://white.market" placeholder="https://target.com">
-                  <button type="button" id="autopilot-launch-btn" class="btn btn-outline" onclick="launchAutopilotChrome()" style="padding: 8px 16px; font-size: 12.5px;">Launch Chrome</button>
-                </div>
+          <!-- Telemetry Row -->
+          <div class="telemetry-row" style="margin-bottom: 20px;">
+            <div class="glass-card stat-card">
+              <div class="stat-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Scanned
               </div>
-
-              <div class="form-group">
-                <label class="form-label">2. Select Victim Tab (Account A — Monitor Live)</label>
-                <div style="display: flex; gap: 8px;">
-                  <select id="autopilot-victim-tab" class="form-select">
-                    <option value="">Click Refresh Tabs after opening Chrome...</option>
-                  </select>
-                  <button type="button" class="btn btn-outline" onclick="refreshAutopilotTabs()" style="padding: 8px 14px; font-size: 12.5px;">Refresh</button>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Allowed Scope Hosts (comma-separated, blank = auto-detect)</label>
-                <input type="text" id="autopilot-scope-hosts" class="form-input" placeholder="e.g. white.market, *.white.market">
-              </div>
-
-              <div class="switch-row">
-                <input type="checkbox" id="autopilot-readonly-toggle" checked onchange="toggleAutopilotReadOnly()">
-                <div class="switch-text">
-                  <div class="switch-label">Read-Only Safe Mode (GET only)</div>
-                  <div class="switch-sub">Pauses POST/PUT mutations until you click Strike</div>
-                </div>
-              </div>
-
-              <div style="display: flex; gap: 10px;">
-                <button type="button" id="autopilot-connect-btn" class="btn-launch" onclick="connectAutopilot()" style="flex: 1;">
-                  Start Auto-Pilot
-                </button>
-                <button type="button" id="autopilot-disconnect-btn" class="btn btn-outline" onclick="disconnectAutopilot()" style="display: none;">
-                  Stop
-                </button>
-                <button type="button" class="btn btn-ghost" onclick="clearAutopilotFeed()">
-                  Clear
-                </button>
-              </div>
+              <div class="stat-val" id="stat-scanned">0</div>
             </div>
-
-            <div>
-              <div class="form-group">
-                <label class="form-label">3. Account B (Attacker Session) — Incognito Tab or cURL</label>
-                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                  <select id="autopilot-attacker-tab" class="form-select">
-                    <option value="">Select Incognito Account B tab...</option>
-                  </select>
-                  <button type="button" class="btn btn-outline" onclick="captureAttackerFromSelectedTab()" style="padding: 8px 14px; font-size: 12.5px;">Grab Tab B</button>
-                </div>
-                <textarea id="autopilot-attacker-curl" class="form-textarea" style="height: 84px; font-size: 11px;" placeholder="Or paste 1 cURL from Account B once (supports -b cookies, X-XSRF-TOKEN, Bearer)..."></textarea>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                  <span id="autopilot-attacker-badge" style="font-family: var(--font-mono); font-size: 11px; color: var(--muted);">Attacker: Not configured</span>
-                  <div style="display: flex; gap: 6px;">
-                    <button type="button" class="btn btn-outline" onclick="setGuestAttacker()" style="padding: 4px 10px; font-size: 11px; border-color: var(--accent); color: var(--accent);" title="Test whether private endpoints leak to unauthenticated visitors">⚡ Test as Guest</button>
-                    <button type="button" class="btn btn-outline" onclick="openNewTabForAccountB()" style="padding: 4px 10px; font-size: 11px;" title="Open a new tab for Account B in Chrome">➕ 2nd Tab</button>
-                    <button type="button" class="btn btn-outline" onclick="saveAttackerCurl()" style="padding: 4px 10px; font-size: 11px;">Save cURL</button>
-                  </div>
-                </div>
+            <div class="glass-card stat-card">
+              <div class="stat-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                High Value
               </div>
-
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Live Auto-Pilot Stream (<span id="autopilot-captured-count">0</span> API calls captured)</label>
-                <div id="autopilot-feed" style="max-height: 220px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(0,0,0,0.02); padding: 8px; font-family: var(--font-mono); font-size: 11px;">
-                  <div style="color: var(--muted); padding: 12px; text-align: center;">Click <strong>Launch Chrome</strong>, log into Account A &amp; Account B (Incognito), then browse normally. Ashborn intercepts &amp; audits every endpoint automatically.</div>
-                </div>
-              </div>
+              <div class="stat-val" id="stat-high-val">0</div>
             </div>
-          </div>
-        </div>
-
-        <!-- Shadow Co-Pilot AI Pair-Hunter Panel -->
-        <div class="glass-card config-panel" id="copilot-section" style="margin-top: 24px;">
-          <div class="config-panel-header">
-            <h3>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-              Shadow Co-Pilot (AI Pair-Hunter)
-            </h3>
-            <div style="display: flex; gap: 8px; align-items: center;">
-              <span class="brand-pill" id="copilot-provider-pill" style="background: var(--accent-soft); color: var(--accent);">Built-in Tactical</span>
-              <button type="button" class="btn btn-outline" onclick="toggleCopilotConfig()" style="padding: 4px 10px; font-size: 11px;">⚙️ Provider &amp; Free Key</button>
+            <div class="glass-card stat-card">
+              <div class="stat-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                Blocked
+              </div>
+              <div class="stat-val danger" id="stat-blocked">0</div>
+            </div>
+            <div class="glass-card stat-card">
+              <div class="stat-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                Confirmed
+              </div>
+              <div class="stat-val accent" id="stat-confirmed">0</div>
             </div>
           </div>
 
-          <!-- Provider & Free Key Drawer (collapsible) -->
-          <div id="copilot-config-drawer" style="display: none; padding: 14px; margin-bottom: 16px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.02); border: 1px solid var(--line);">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 10px;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">LLM Provider (Free Options from GitHub Resource)</label>
-                <select id="copilot-provider-select" class="form-select" onchange="onCopilotProviderChange()">
-                  <option value="builtin">Built-in Tactical Engine (No API Key Required)</option>
-                  <option value="groq">Groq Free (Llama 3.3 70B - Ultra Fast)</option>
-                  <option value="gemini">Google AI Studio (Gemini 1.5/2.0 Flash - Free)</option>
-                  <option value="openrouter">OpenRouter Free Tier (:free models)</option>
-                  <option value="github">GitHub Models (Free with GitHub Token)</option>
-                  <option value="local">Local LM Studio / Ollama (localhost:1234)</option>
-                </select>
-              </div>
-              <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">
-                  API Key / Token
-                  <a id="copilot-doc-link" href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" style="font-size: 10.5px; color: var(--accent); margin-left: 6px; text-decoration: underline; display: none;">Get Free Key ↗</a>
-                </label>
-                <input type="password" id="copilot-api-key" class="form-input" placeholder="Paste free API key (saved in browser)..." oninput="saveCopilotSettings()">
-              </div>
+          <!-- Chrome DevTools Auto-Pilot Panel -->
+          <div class="glass-card config-panel" id="autopilot-section">
+            <div class="config-panel-header">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+                Target CDP Interception &amp; Live Stream
+              </h3>
+              <span class="brand-pill" id="autopilot-pill">disconnected</span>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted);">
-              <span>Model: <code id="copilot-model-display">ashborn-tactical-v1</code></span>
-              <button type="button" class="btn btn-ghost" onclick="toggleCopilotConfig()" style="font-size: 11px; padding: 2px 8px;">Done</button>
-            </div>
-          </div>
 
-          <!-- Quick Command Chips -->
-          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
-            <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('What did you find on white.market so far?')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">🎯 What did you find?</button>
-            <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Focus our attack hunt on user inventory and trade requests.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">⚡ Focus on inventory &amp; trade</button>
-            <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Explain why the last endpoint was refuted safe.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">🛡️ Why was /graphql/api safe?</button>
-            <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Draft a HackenProof bug bounty report for WhiteMarket.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">📝 Draft HackenProof report</button>
-            <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Set attacker mode to Anonymous Guest to test for missing authentication.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">🚀 Test as Guest</button>
-          </div>
+            <div id="autopilot-status-box" style="display: none; margin-bottom: 16px; padding: 12px 16px; border-radius: var(--radius-sm); background: var(--success-soft); color: var(--success); font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; border: 1px solid rgba(46,125,50,0.25);"></div>
+            <div id="autopilot-error-box" style="display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--danger-soft); color: var(--danger); font-family: var(--font-mono); font-size: 12px;"></div>
 
-          <!-- Chat Feed Stream -->
-          <div id="copilot-chat-feed" style="max-height: 340px; min-height: 200px; overflow-y: auto; padding: 12px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.02); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;">
-            <div style="display: flex; gap: 10px; align-items: flex-start;">
-              <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">A</div>
-              <div style="background: #fff; border: 1px solid var(--line); padding: 10px 14px; border-radius: 0 10px 10px 10px; font-size: 12.5px; line-height: 1.5; color: var(--ink); max-width: 90%;">
-                👋 <strong>I am your Ashborn Shadow Co-Pilot.</strong> I am actively linked into your live test session on <code style="color: var(--accent);">white.market</code>.<br><br>
-                You can give me instructions, tell me which endpoints to prioritize, ask why an endpoint was safe, or type <em>"Draft HackenProof report"</em>. Click a chip above or type below!
-              </div>
-            </div>
-          </div>
-
-          <!-- Chat Input Bar -->
-          <form id="copilot-form" onsubmit="handleCopilotSubmit(event)" style="display: flex; gap: 8px;">
-            <input type="text" id="copilot-input" class="form-input" placeholder="Give instructions or ask Co-Pilot (e.g. 'Strike endpoint cdp-1', 'Focus on orders')..." style="flex: 1;" autocomplete="off">
-            <button type="submit" id="copilot-send-btn" class="btn-launch" style="padding: 0 20px; font-size: 13px;">Send</button>
-          </form>
-        </div>
-
-        <!-- Configuration Panel -->
-        <div class="glass-card config-panel" id="config-section">
-          <div class="config-panel-header">
-            <h3>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-              Target Configuration
-            </h3>
-            <span class="brand-pill">scope &amp; credentials</span>
-          </div>
-
-          <form id="audit-form" onsubmit="handleFormSubmit(event)">
             <div class="config-layout">
               <div>
                 <div class="form-group">
-                  <label class="form-label">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                    Target Base URL
-                  </label>
-                  <input type="text" id="target-url" class="form-input" value="http://127.0.0.1:3000" placeholder="https://api.target.com" required>
+                  <label class="form-label">1. Target URL to Open in Debug Chrome</label>
+                  <div style="display: flex; gap: 8px;">
+                    <input type="text" id="autopilot-launch-url" class="form-input" value="https://white.market" placeholder="https://target.com">
+                    <button type="button" id="autopilot-launch-btn" class="btn btn-outline" onclick="launchAutopilotChrome()" style="padding: 8px 16px; font-size: 12.5px;">Launch Chrome</button>
+                  </div>
                 </div>
 
                 <div class="form-group">
-                  <label class="form-label">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-                    Ingress Mode
-                  </label>
-                  <select id="ingress-mode" class="form-select" onchange="handleModeChange()">
-                    <option value="bundle">Client-Side JavaScript Bundle</option>
-                    <option value="openapi">OpenAPI / Swagger JSON Schema</option>
-                    <option value="curl">Raw Browser / Burp cURL Ingress</option>
-                  </select>
-                </div>
-
-                <!-- Curl Ingress Fields (Lostsec Style) -->
-                <div id="curl-ingress-container" style="display: none;">
-                  <div style="margin-bottom: 14px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--accent-soft); border: 1px solid rgba(188, 124, 51, 0.18); font-size: 11.5px; color: var(--ink-secondary); line-height: 1.5;">
-                    <strong style="color: var(--ink);">Dual-Session cURL Mode:</strong> Paste <code>Copy as cURL (bash)</code> or <code>Copy as cURL (cmd)</code> from Chrome, Edge, Firefox, or Burp. Supports <code>--url</code>, <code>-b</code> cookies, <code>X-XSRF-TOKEN</code>, and <code>Bearer</code> tokens. Log into Account B in an Incognito window so sessions are distinct.
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                      User A (Victim) Browser cURL
-                    </label>
-                    <textarea id="curl-user-a" class="form-textarea" style="height: 110px; font-size: 11px; font-family: var(--font-mono);" placeholder="Paste User A 'Copy as cURL' (resource owned by Account A)...">curl 'http://127.0.0.1:3000/api/demo/workspaces/rec_octane_881' -H 'Authorization: Bearer token_victim_user_a'</textarea>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                      User B (Attacker) Browser cURL
-                    </label>
-                    <textarea id="curl-user-b" class="form-textarea" style="height: 110px; font-size: 11px; font-family: var(--font-mono);" placeholder="Paste User B 'Copy as cURL' (from Incognito / Account B session)...">curl 'http://127.0.0.1:3000/api/demo/workspaces/rec_octane_881' -H 'Authorization: Bearer ashborn_hunter_token_session_b'</textarea>
+                  <label class="form-label">2. Select Victim Tab (Account A — Monitor Live)</label>
+                  <div style="display: flex; gap: 8px;">
+                    <select id="autopilot-victim-tab" class="form-select">
+                      <option value="">Click Refresh Tabs after opening Chrome...</option>
+                    </select>
+                    <button type="button" class="btn btn-outline" onclick="refreshAutopilotTabs()" style="padding: 8px 14px; font-size: 12.5px;">Refresh</button>
                   </div>
                 </div>
 
-                <!-- Standard Bundle / OpenAPI Fields -->
-                <div id="standard-ingress-container">
+                <div class="form-group">
+                  <label class="form-label">Allowed Scope Hosts (comma-separated, blank = auto-detect)</label>
+                  <input type="text" id="autopilot-scope-hosts" class="form-input" placeholder="e.g. white.market, *.white.market">
+                </div>
+
+                <div class="switch-row">
+                  <input type="checkbox" id="autopilot-readonly-toggle" checked onchange="toggleAutopilotReadOnly()">
+                  <div class="switch-text">
+                    <div class="switch-label">Read-Only Safe Mode (GET only)</div>
+                    <div class="switch-sub">Pauses POST/PUT mutations until you click Strike</div>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                  <button type="button" id="autopilot-connect-btn" class="btn-launch" onclick="connectAutopilot()" style="flex: 1;">
+                    Start Auto-Pilot
+                  </button>
+                  <button type="button" id="autopilot-disconnect-btn" class="btn btn-outline" onclick="disconnectAutopilot()" style="display: none;">
+                    Stop
+                  </button>
+                  <button type="button" class="btn btn-ghost" onclick="clearAutopilotFeed()">
+                    Clear
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div class="form-group">
+                  <label class="form-label">3. Account B (Attacker Session) — Incognito Tab or cURL</label>
+                  <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                    <select id="autopilot-attacker-tab" class="form-select">
+                      <option value="">Select Incognito Account B tab...</option>
+                    </select>
+                    <button type="button" class="btn btn-outline" onclick="captureAttackerFromSelectedTab()" style="padding: 8px 14px; font-size: 12.5px;">Grab Tab B</button>
+                  </div>
+                  <textarea id="autopilot-attacker-curl" class="form-textarea" style="height: 84px; font-size: 11px;" placeholder="Or paste 1 cURL from Account B once (supports -b cookies, X-XSRF-TOKEN, Bearer)..."></textarea>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                    <span id="autopilot-attacker-badge" style="font-family: var(--font-mono); font-size: 11px; color: var(--muted);">Attacker: Not configured</span>
+                    <div style="display: flex; gap: 6px;">
+                      <button type="button" class="btn btn-outline" onclick="setGuestAttacker()" style="padding: 4px 10px; font-size: 11px; border-color: var(--accent); color: var(--accent);" title="Test whether private endpoints leak to unauthenticated visitors">⚡ Test as Guest</button>
+                      <button type="button" class="btn btn-outline" onclick="openNewTabForAccountB()" style="padding: 4px 10px; font-size: 11px;" title="Open a new tab for Account B in Chrome">➕ 2nd Tab</button>
+                      <button type="button" class="btn btn-outline" onclick="saveAttackerCurl()" style="padding: 4px 10px; font-size: 11px;">Save cURL</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label">Live Auto-Pilot Stream (<span id="autopilot-captured-count">0</span> API calls captured)</label>
+                  <div id="autopilot-feed" style="max-height: 220px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(0,0,0,0.02); padding: 8px; font-family: var(--font-mono); font-size: 11px;">
+                    <div style="color: var(--muted); padding: 12px; text-align: center;">Click <strong>Launch Chrome</strong>, log into Account A &amp; Account B (Incognito), then browse normally. Ashborn intercepts &amp; audits every endpoint automatically.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ════════ TAB 2: RECEIPTS & FINDINGS ════════ -->
+        <div id="cockpit-tab-receipts" class="cockpit-tab-pane">
+
+          <!-- Header Card -->
+          <div class="glass-card" style="padding: 24px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div>
+              <span class="kicker">Cryptographic Receipts</span>
+              <h2 style="font-size: 24px; margin-top: 4px;">Verified Vulnerability Findings</h2>
+              <p style="color: var(--muted); font-size: 13.5px; max-width: 600px;">Every confirmed exploit generates a tamper-proof cryptographic receipt and reproducible cURL proof ready for submission to HackenProof or HackerOne.</p>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="btn btn-outline" onclick="run1ClickDemo()">⚡ Run Demo Audit</button>
+              <button type="button" class="btn btn-primary" onclick="switchCockpitTab('autopilot')">🧭 Back to Auto-Pilot</button>
+            </div>
+          </div>
+
+          <!-- Status Banner -->
+          <div class="status-banner" id="status-banner" style="margin-bottom: 16px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+            Audit in progress — executing cross-tenant blast chamber probes...
+          </div>
+
+          <!-- Receipt Stream -->
+          <div id="receipts-container">
+            <div class="glass-card empty-state">
+              <div class="empty-state-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <h4>Blast Chamber Standby</h4>
+              <p>No confirmed findings yet. Browse in Chrome Auto-Pilot or run a 1-Click Simulation to test endpoints.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ════════ TAB 3: TARGET & STRIKERS ════════ -->
+        <div id="cockpit-tab-strikers" class="cockpit-tab-pane">
+
+          <!-- Header Card -->
+          <div class="glass-card" style="padding: 24px; margin-bottom: 20px;">
+            <span class="kicker">Attack Engines &amp; Scope</span>
+            <h2 style="font-size: 24px; margin-top: 4px;">Target Configuration &amp; Adversarial Strikers</h2>
+            <p style="color: var(--muted); font-size: 13.5px;">Configure target scope, paste dual-session cURLs (Haddix 4-stage matrix), or execute the 10-scenario ground-truth benchmark.</p>
+          </div>
+
+          <!-- Quick Action Cards (SETO-style) -->
+          <div class="quick-actions" style="padding: 0 0 20px;">
+            <div class="glass-card quick-action-card" onclick="run1ClickDemo()">
+              <div class="qa-icon amber">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
+              <h4>1-Click Simulation</h4>
+              <p>Run a full audit against the local demo server instantly.</p>
+            </div>
+            <div class="glass-card quick-action-card" onclick="runLiveBenchmark()">
+              <div class="qa-icon rose">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <h4>10-Scenario Benchmark</h4>
+              <p>Prove 100% precision &amp; 0 false alarms against real CVEs.</p>
+            </div>
+            <div class="glass-card quick-action-card" onclick="openCurlIngress()">
+              <div class="qa-icon" style="background: rgba(46, 125, 50, 0.10); color: var(--success);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg>
+              </div>
+              <h4>cURL Ingress (Lostsec)</h4>
+              <p>Paste browser cURLs &amp; strike via the 4-stage Haddix matrix.</p>
+            </div>
+            <div class="glass-card quick-action-card" onclick="switchCockpitTab('autopilot')">
+              <div class="qa-icon" style="background: rgba(188, 124, 51, 0.14); color: var(--accent);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+              </div>
+              <h4>Open Auto-Pilot</h4>
+              <p>Browse live in Chrome while Ashborn intercepts &amp; tests.</p>
+            </div>
+          </div>
+
+          <!-- Configuration Panel -->
+          <div class="glass-card config-panel" id="config-section">
+            <div class="config-panel-header">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Target Scope &amp; Authentication
+              </h3>
+              <span class="brand-pill">scope &amp; credentials</span>
+            </div>
+
+            <form id="audit-form" onsubmit="handleFormSubmit(event)">
+              <div class="config-layout">
+                <div>
                   <div class="form-group">
-                    <label class="form-label" id="payload-label">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-                      Payload Content
+                    <label class="form-label">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                      Target Base URL
                     </label>
-                    <textarea id="payload-content" class="form-textarea" placeholder="Paste bundle code or API routes...">const routes = [
+                    <input type="text" id="target-url" class="form-input" value="http://127.0.0.1:3000" placeholder="https://api.target.com" required>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                      Ingress Mode
+                    </label>
+                    <select id="ingress-mode" class="form-select" onchange="handleModeChange()">
+                      <option value="bundle">Client-Side JavaScript Bundle</option>
+                      <option value="openapi">OpenAPI / Swagger JSON Schema</option>
+                      <option value="curl">Raw Browser / Burp cURL Ingress</option>
+                    </select>
+                  </div>
+
+                  <!-- Curl Ingress Fields (Lostsec Style) -->
+                  <div id="curl-ingress-container" style="display: none;">
+                    <div style="margin-bottom: 14px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--accent-soft); border: 1px solid rgba(188, 124, 51, 0.18); font-size: 11.5px; color: var(--ink-secondary); line-height: 1.5;">
+                      <strong style="color: var(--ink);">Dual-Session cURL Mode:</strong> Paste <code>Copy as cURL (bash)</code> or <code>Copy as cURL (cmd)</code> from Chrome, Edge, Firefox, or Burp. Supports <code>--url</code>, <code>-b</code> cookies, <code>X-XSRF-TOKEN</code>, and <code>Bearer</code> tokens. Log into Account B in an Incognito window so sessions are distinct.
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        User A (Victim) Browser cURL
+                      </label>
+                      <textarea id="curl-user-a" class="form-textarea" style="height: 110px; font-size: 11px; font-family: var(--font-mono);" placeholder="Paste User A 'Copy as cURL' (resource owned by Account A)...">curl 'http://127.0.0.1:3000/api/demo/workspaces/rec_octane_881' -H 'Authorization: Bearer token_victim_user_a'</textarea>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        User B (Attacker) Browser cURL
+                      </label>
+                      <textarea id="curl-user-b" class="form-textarea" style="height: 110px; font-size: 11px; font-family: var(--font-mono);" placeholder="Paste User B 'Copy as cURL' (from Incognito / Account B session)...">curl 'http://127.0.0.1:3000/api/demo/workspaces/rec_octane_881' -H 'Authorization: Bearer ashborn_hunter_token_session_b'</textarea>
+                    </div>
+                  </div>
+
+                  <!-- Standard Bundle / OpenAPI Fields -->
+                  <div id="standard-ingress-container">
+                    <div class="form-group">
+                      <label class="form-label" id="payload-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        Payload Content
+                      </label>
+                      <textarea id="payload-content" class="form-textarea" placeholder="Paste bundle code or API routes...">const routes = [
   "/api/demo/workspaces/:workspace_id",
   "/api/demo/users/{id}",
   "/api/demo/secure_profile/:id",
   "/api/demo/billing/users/{id}/charge"
 ];</textarea>
+                    </div>
                   </div>
+                </div>
+
+                <div>
+                  <div id="credentials-container">
+                    <div class="form-group">
+                      <label class="form-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Attacker Token (Session B)
+                      </label>
+                      <input type="text" id="attacker-token" class="form-input" value="ashborn_hunter_token_session_b">
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        Victim Resource ID
+                      </label>
+                      <input type="text" id="victim-id" class="form-input" value="rec_octane_881">
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Victim Fingerprint (Optional · Auto-Differential)
+                      </label>
+                      <input type="text" id="victim-secret" class="form-input" placeholder="Optional: auto-derived via differential testing">
+                    </div>
+                  </div>
+
+                  <div class="switch-row">
+                    <input type="checkbox" id="gov-toggle" checked>
+                    <div class="switch-text">
+                      <div class="switch-label">Safety Governor Active</div>
+                      <div class="switch-sub">Blocks destructive &amp; billing endpoints</div>
+                    </div>
+                  </div>
+
+                  <button type="submit" id="submit-btn" class="btn-launch">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    Release the Shadows
+                  </button>
                 </div>
               </div>
+            </form>
+          </div>
+        </div>
 
-              <div>
-                <div id="credentials-container">
-                  <div class="form-group">
-                    <label class="form-label">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                      Attacker Token (Session B)
-                    </label>
-                    <input type="text" id="attacker-token" class="form-input" value="ashborn_hunter_token_session_b">
-                  </div>
+        <!-- ════════ TAB 4: SHADOW CO-PILOT WORKSPACE ════════ -->
+        <div id="cockpit-tab-copilot" class="cockpit-tab-pane">
 
-                  <div class="form-group">
-                    <label class="form-label">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                      Victim Resource ID
-                    </label>
-                    <input type="text" id="victim-id" class="form-input" value="rec_octane_881">
-                  </div>
+          <!-- Header Card -->
+          <div class="glass-card" style="padding: 24px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div>
+              <span class="kicker">AI Pair-Hunter Workspace</span>
+              <h2 style="font-size: 24px; margin-top: 4px;">Shadow Co-Pilot Full-Screen Studio</h2>
+              <p style="color: var(--muted); font-size: 13.5px; max-width: 600px;">Direct tactical interaction with Ashborn's reasoning engine and free LLM providers (Groq, Gemini, OpenRouter, GitHub, Local).</p>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="btn btn-outline" onclick="toggleCopilotConfig()">⚙️ LLM Provider Keys</button>
+              <button type="button" class="btn btn-primary" onclick="switchCockpitTab('autopilot')">🧭 Back to Auto-Pilot</button>
+            </div>
+          </div>
 
-                  <div class="form-group">
-                    <label class="form-label">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                      Victim Fingerprint (Optional · Auto-Differential)
-                    </label>
-                    <input type="text" id="victim-secret" class="form-input" placeholder="Optional: auto-derived via differential testing">
-                  </div>
-                </div>
-
-                <div class="switch-row">
-                  <input type="checkbox" id="gov-toggle" checked>
-                  <div class="switch-text">
-                    <div class="switch-label">Safety Governor Active</div>
-                    <div class="switch-sub">Blocks destructive &amp; billing endpoints</div>
-                  </div>
-                </div>
-
-                <button type="submit" id="submit-btn" class="btn-launch">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                  Release the Shadows
-                </button>
+          <!-- Shadow Co-Pilot AI Pair-Hunter Panel -->
+          <div class="glass-card config-panel" id="copilot-section">
+            <div class="config-panel-header">
+              <h3>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                Shadow Co-Pilot Feed
+              </h3>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span class="brand-pill" id="copilot-provider-pill" style="background: var(--accent-soft); color: var(--accent);">Built-in Tactical</span>
+                <button type="button" class="btn btn-outline" onclick="toggleCopilotConfig()" style="padding: 4px 10px; font-size: 11px;">⚙️ Provider &amp; Free Key</button>
               </div>
             </div>
-          </form>
+
+            <!-- Provider & Free Key Drawer (collapsible) -->
+            <div id="copilot-config-drawer" style="display: none; padding: 14px; margin-bottom: 16px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.02); border: 1px solid var(--line);">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 10px;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label">LLM Provider (Free Options from GitHub Resource)</label>
+                  <select id="copilot-provider-select" class="form-select" onchange="onCopilotProviderChange()">
+                    <option value="builtin">Built-in Tactical Engine (No API Key Required)</option>
+                    <option value="groq">Groq Free (Llama 3.3 70B - Ultra Fast)</option>
+                    <option value="gemini">Google AI Studio (Gemini 1.5/2.0 Flash - Free)</option>
+                    <option value="openrouter">OpenRouter Free Tier (:free models)</option>
+                    <option value="github">GitHub Models (Free with GitHub Token)</option>
+                    <option value="local">Local LM Studio / Ollama (localhost:1234)</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label class="form-label">
+                    API Key / Token
+                    <a id="copilot-doc-link" href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" style="font-size: 10.5px; color: var(--accent); margin-left: 6px; text-decoration: underline; display: none;">Get Free Key ↗</a>
+                  </label>
+                  <input type="password" id="copilot-api-key" class="form-input" placeholder="Paste free API key (saved in browser)..." oninput="saveCopilotSettings()">
+                </div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted);">
+                <span>Model: <code id="copilot-model-display">ashborn-tactical-v1</code></span>
+                <button type="button" class="btn btn-ghost" onclick="toggleCopilotConfig()" style="font-size: 11px; padding: 2px 8px;">Done</button>
+              </div>
+            </div>
+
+            <!-- Quick Command Chips -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+              <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('What did you find on white.market so far?')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">🎯 What did you find?</button>
+              <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Focus our attack hunt on user inventory and trade requests.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">⚡ Focus on inventory &amp; trade</button>
+              <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Explain why the last endpoint was refuted safe.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">🛡️ Why was /graphql/api safe?</button>
+              <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Draft a HackenProof bug bounty report for WhiteMarket.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">📝 Draft HackenProof report</button>
+              <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Set attacker mode to Anonymous Guest to test for missing authentication.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">🚀 Test as Guest</button>
+            </div>
+
+            <!-- Chat Feed Stream -->
+            <div id="copilot-chat-feed" style="max-height: 420px; min-height: 240px; overflow-y: auto; padding: 14px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.02); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px;">
+              <div style="display: flex; gap: 10px; align-items: flex-start;">
+                <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">A</div>
+                <div style="background: #fff; border: 1px solid var(--line); padding: 10px 14px; border-radius: 0 10px 10px 10px; font-size: 12.5px; line-height: 1.5; color: var(--ink); max-width: 90%; box-shadow: var(--shadow-sm);">
+                  👋 <strong>I am your Ashborn Shadow Co-Pilot.</strong> I am actively linked into your live test session on <code style="color: var(--accent);">white.market</code>.<br><br>
+                  You can give me instructions, tell me which endpoints to prioritize, ask why an endpoint was safe, or type <em>"Draft HackenProof report"</em>. Click a chip above or type below!
+                </div>
+              </div>
+            </div>
+
+            <!-- Chat Input Bar -->
+            <form id="copilot-form" onsubmit="handleCopilotSubmit(event)" style="display: flex; gap: 8px;">
+              <input type="text" id="copilot-input" class="form-input" placeholder="Give instructions or ask Co-Pilot (e.g. 'Strike endpoint cdp-1', 'Focus on orders')..." style="flex: 1;" autocomplete="off">
+              <button type="submit" id="copilot-send-btn" class="btn-launch" style="padding: 0 24px; font-size: 13px;">Send</button>
+            </form>
+          </div>
         </div>
 
       </div>
     </div>
   </main>
+
+  <!-- ════════ PAVILION-STYLE CO-PILOT SLIDE-OUT DRAWER ════════ -->
+  <div id="copilot-drawer-backdrop" class="copilot-drawer-backdrop" onclick="toggleCopilotDrawer()"></div>
+  <aside id="copilot-drawer" class="copilot-drawer" aria-label="Shadow Co-Pilot Drawer">
+    <div class="copilot-drawer-header">
+      <div class="copilot-drawer-tabs">
+        <div class="copilot-drawer-tab">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; color: var(--accent);"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          <span>Hunt Co-Pilot</span>
+        </div>
+        <button class="copilot-drawer-tab-btn" onclick="clearCopilotChat()" title="Start New Chat">+</button>
+      </div>
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <button class="btn-ghost-sm" onclick="toggleDrawerConfig()" title="LLM Provider Settings">⚙️</button>
+        <button class="btn-ghost-sm" onclick="toggleCopilotDrawer()" title="Close Drawer">✕</button>
+      </div>
+    </div>
+
+    <!-- Collapsible Drawer Provider Settings -->
+    <div id="drawer-config-panel" style="display: none; padding: 12px 16px; border-bottom: 1px solid var(--line); background: #fdfdfc; font-size: 12px;">
+      <div style="margin-bottom: 8px;">
+        <label style="font-weight: 500; display: block; margin-bottom: 4px; color: var(--ink);">Provider (Free via GitHub Resource)</label>
+        <select id="drawer-provider-select" class="form-select" onchange="onDrawerProviderChange()" style="padding: 6px 10px; font-size: 12px;">
+          <option value="builtin">Built-in Tactical (No Key Needed)</option>
+          <option value="groq">Groq Free (Llama 3.3 70B)</option>
+          <option value="gemini">Google AI Studio (Gemini Flash)</option>
+          <option value="openrouter">OpenRouter Free Tier</option>
+          <option value="github">GitHub Models</option>
+          <option value="local">Local LM Studio / Ollama</option>
+        </select>
+      </div>
+      <div style="margin-bottom: 4px;">
+        <label style="font-weight: 500; display: flex; justify-content: space-between; margin-bottom: 4px; color: var(--ink);">
+          <span>API Key / Token</span>
+          <a id="drawer-doc-link" href="https://console.groq.com/keys" target="_blank" style="color: var(--accent); display: none; text-decoration: underline;">Get Key ↗</a>
+        </label>
+        <input type="password" id="drawer-api-key" class="form-input" placeholder="Paste free API key..." oninput="syncDrawerApiKey()" style="padding: 6px 10px; font-size: 11.5px;">
+      </div>
+    </div>
+
+    <!-- Drawer Chat Message Body -->
+    <div id="copilot-drawer-feed" class="copilot-drawer-body">
+      <div style="display: flex; gap: 10px; align-items: flex-start;">
+        <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">A</div>
+        <div style="background: #fff; border: 1px solid var(--line); padding: 10px 14px; border-radius: 0 10px 10px 10px; font-size: 12.5px; line-height: 1.5; color: var(--ink); box-shadow: var(--shadow-sm);">
+          👋 <strong>I am your Ashborn Shadow Co-Pilot.</strong> Linked live into your hunt session on <code style="color: var(--accent);">white.market</code>.<br><br>
+          Give me tactical instructions, tell me which endpoints to prioritize, or ask me to draft a HackenProof bug report!
+        </div>
+      </div>
+    </div>
+
+    <!-- Drawer Footer: Pavilion Action Chips & Rounded Input Pill -->
+    <div class="copilot-drawer-footer">
+      <div class="copilot-action-chips">
+        <button type="button" class="copilot-action-chip" onclick="sendQuickPrompt('What did you find on white.market so far?')">🎯 What did you find?</button>
+        <button type="button" class="copilot-action-chip" onclick="sendQuickPrompt('Focus our attack hunt on user inventory and trade requests.')">⚡ Focus on inventory &amp; trade</button>
+        <button type="button" class="copilot-action-chip" onclick="sendQuickPrompt('Explain why the last endpoint was refuted safe.')">🛡️ Why was /graphql safe?</button>
+        <button type="button" class="copilot-action-chip" onclick="sendQuickPrompt('Draft a HackenProof bug bounty report for WhiteMarket.')">📝 Draft HackenProof report</button>
+        <button type="button" class="copilot-action-chip" onclick="sendQuickPrompt('Set attacker mode to Anonymous Guest to test for missing authentication.')">🚀 Test as Guest</button>
+      </div>
+
+      <form id="copilot-drawer-form" onsubmit="handleDrawerSubmit(event)">
+        <div class="copilot-pill-input-box">
+          <div class="copilot-pill-input-row">
+            <input type="text" id="copilot-drawer-input" class="copilot-pill-input" placeholder="Ask Co-Pilot or give instructions..." autocomplete="off">
+            <button type="submit" id="copilot-drawer-send-btn" class="copilot-pill-send" title="Send message">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+            </button>
+          </div>
+          <div class="copilot-pill-meta">
+            <span class="copilot-model-chip" onclick="toggleDrawerConfig()" id="drawer-model-display">Built-in Tactical ▾</span>
+            <span>Enter to send</span>
+          </div>
+        </div>
+      </form>
+    </div>
+  </aside>
 
   <!-- ════════ FOOTER ════════ -->
   <footer class="page-footer">
@@ -1756,16 +2206,53 @@
       }
     }
 
+    function switchCockpitTab(tabName) {
+      const tabs = ['autopilot', 'receipts', 'strikers', 'copilot'];
+      tabs.forEach(t => {
+        const pane = document.getElementById(`cockpit-tab-${t}`);
+        const sideBtn = document.getElementById(`side-tab-${t}`);
+        if (pane) {
+          if (t === tabName) {
+            pane.classList.add('active');
+            pane.style.display = 'block';
+          } else {
+            pane.classList.remove('active');
+            pane.style.display = 'none';
+          }
+        }
+        if (sideBtn) {
+          if (t === tabName) {
+            sideBtn.classList.add('active');
+          } else {
+            sideBtn.classList.remove('active');
+          }
+        }
+      });
+
+      const titleEl = document.getElementById('cockpit-tab-title');
+      if (titleEl) {
+        const titles = {
+          autopilot: 'Live Auto-Pilot',
+          receipts: 'Vulnerability Receipts & Proofs',
+          strikers: 'Target Configuration & Strikers',
+          copilot: 'Shadow Co-Pilot Studio'
+        };
+        titleEl.textContent = titles[tabName] || tabName;
+      }
+    }
+
     function openCurlIngress() {
       switchView('cockpit');
+      switchCockpitTab('strikers');
       document.getElementById('ingress-mode').value = 'curl';
       handleModeChange();
-      document.getElementById('config-section').scrollIntoView({ behavior: 'smooth' });
+      const el = document.getElementById('curl-ingress-container');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
 
     function openAutopilot() {
       switchView('cockpit');
-      document.getElementById('autopilot-section').scrollIntoView({ behavior: 'smooth' });
+      switchCockpitTab('autopilot');
       refreshAutopilotTabs();
       pollAutopilotStatus();
     }
@@ -2078,6 +2565,31 @@
       const items = st.capturedEndpoints || [];
       countEl.textContent = String(items.length);
 
+      // Update top status pills & tab badges
+      const topCdpPill = document.getElementById('pill-cdp-status');
+      if (topCdpPill) {
+        if (st.connected) {
+          topCdpPill.innerHTML = '<span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--success);"></span> 🟢 CDP Active';
+          topCdpPill.classList.add('active');
+        } else {
+          topCdpPill.innerHTML = '<span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--muted);"></span> CDP Standby';
+          topCdpPill.classList.remove('active');
+        }
+      }
+      const topScannedPill = document.getElementById('pill-scanned-count');
+      if (topScannedPill) topScannedPill.textContent = `${items.length} Scanned`;
+      const topConfirmedPill = document.getElementById('pill-confirmed-count');
+      if (topConfirmedPill) topConfirmedPill.textContent = `${(st.receipts || []).length} Confirmed`;
+
+      const receiptsTabBadge = document.getElementById('side-badge-receipts');
+      if (receiptsTabBadge) {
+        receiptsTabBadge.textContent = String((st.receipts || []).length);
+        if ((st.receipts || []).length > 0) {
+          receiptsTabBadge.style.background = 'var(--danger-soft)';
+          receiptsTabBadge.style.color = 'var(--danger)';
+        }
+      }
+
       if (items.length > 0) {
         document.getElementById('stat-scanned').innerText = String(items.length);
         document.getElementById('stat-high-val').innerText = String(items.filter(i => i.isHighValue).length);
@@ -2123,6 +2635,7 @@
 
     async function runLiveBenchmark() {
       switchView('cockpit');
+      switchCockpitTab('receipts');
       const banner = document.getElementById('status-banner');
       const container = document.getElementById('receipts-container');
 
@@ -2180,6 +2693,7 @@
 
     async function run1ClickDemo() {
       switchView('cockpit');
+      switchCockpitTab('receipts');
       document.getElementById('target-url').value = window.location.origin || 'http://127.0.0.1:3000';
       document.getElementById('ingress-mode').value = 'bundle';
       handleModeChange();
@@ -2349,14 +2863,98 @@
 
     function openCopilotSection() {
       switchView('cockpit');
-      const el = document.getElementById('copilot-section');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      switchCockpitTab('copilot');
     }
 
     function toggleCopilotConfig() {
       const drawer = document.getElementById('copilot-config-drawer');
       if (!drawer) return;
       drawer.style.display = drawer.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // ─── PAVILION-STYLE DRAWER CONTROLS ───
+    function toggleCopilotDrawer() {
+      const drawer = document.getElementById('copilot-drawer');
+      const backdrop = document.getElementById('copilot-drawer-backdrop');
+      if (!drawer) return;
+      const isOpen = drawer.classList.contains('open');
+      if (isOpen) {
+        drawer.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('open');
+      } else {
+        drawer.classList.add('open');
+        if (backdrop) backdrop.classList.add('open');
+        syncDrawerDisplay();
+        const input = document.getElementById('copilot-drawer-input');
+        if (input) setTimeout(() => input.focus(), 150);
+      }
+    }
+
+    function toggleDrawerConfig() {
+      const p = document.getElementById('drawer-config-panel');
+      if (!p) return;
+      p.style.display = p.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function onDrawerProviderChange() {
+      const val = document.getElementById('drawer-provider-select').value;
+      const mainSelect = document.getElementById('copilot-provider-select');
+      if (mainSelect) {
+        mainSelect.value = val;
+        onCopilotProviderChange();
+      }
+      syncDrawerDisplay();
+    }
+
+    function syncDrawerApiKey() {
+      const val = document.getElementById('drawer-api-key').value;
+      const mainKey = document.getElementById('copilot-api-key');
+      if (mainKey) {
+        mainKey.value = val;
+        saveCopilotSettings();
+      }
+    }
+
+    function syncDrawerDisplay() {
+      const provider = (document.getElementById('copilot-provider-select') || {}).value || 'builtin';
+      const meta = COPILOT_PRESET_MODELS[provider] || COPILOT_PRESET_MODELS.builtin;
+      const displayEl = document.getElementById('drawer-model-display');
+      if (displayEl) displayEl.textContent = `${meta.name} ▾`;
+      const docLink = document.getElementById('drawer-doc-link');
+      if (docLink) {
+        if (meta.doc) {
+          docLink.href = meta.doc;
+          docLink.style.display = 'inline';
+        } else {
+          docLink.style.display = 'none';
+        }
+      }
+      const drawerSelect = document.getElementById('drawer-provider-select');
+      if (drawerSelect && drawerSelect.value !== provider) {
+        drawerSelect.value = provider;
+      }
+      const drawerKey = document.getElementById('drawer-api-key');
+      const mainKey = document.getElementById('copilot-api-key');
+      if (drawerKey && mainKey && drawerKey.value !== mainKey.value) {
+        drawerKey.value = mainKey.value;
+      }
+    }
+
+    function clearCopilotChat() {
+      copilotChatHistory = [];
+      const defaultHtml = `
+        <div style="display: flex; gap: 10px; align-items: flex-start;">
+          <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">A</div>
+          <div style="background: #fff; border: 1px solid var(--line); padding: 10px 14px; border-radius: 0 10px 10px 10px; font-size: 12.5px; line-height: 1.5; color: var(--ink); box-shadow: var(--shadow-sm);">
+            👋 <strong>I am your Ashborn Shadow Co-Pilot.</strong> Linked live into your hunt session on <code style="color: var(--accent);">white.market</code>.<br><br>
+            Give me tactical instructions, tell me which endpoints to prioritize, or ask me to draft a HackenProof bug report!
+          </div>
+        </div>
+      `;
+      const feed = document.getElementById('copilot-chat-feed');
+      const drawerFeed = document.getElementById('copilot-drawer-feed');
+      if (feed) feed.innerHTML = defaultHtml;
+      if (drawerFeed) drawerFeed.innerHTML = defaultHtml;
     }
 
     function onCopilotProviderChange() {
@@ -2373,6 +2971,7 @@
         docLink.style.display = 'none';
       }
       saveCopilotSettings();
+      syncDrawerDisplay();
     }
 
     function saveCopilotSettings() {
@@ -2399,31 +2998,46 @@
     }
 
     function sendQuickPrompt(promptText) {
-      const input = document.getElementById('copilot-input');
+      sendCopilotMessage(promptText);
+    }
+
+    async function handleDrawerSubmit(event) {
+      if (event && event.preventDefault) event.preventDefault();
+      const input = document.getElementById('copilot-drawer-input');
       if (!input) return;
-      input.value = promptText;
-      handleCopilotSubmit(new Event('submit'));
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      await sendCopilotMessage(text);
     }
 
     async function handleCopilotSubmit(event) {
       if (event && event.preventDefault) event.preventDefault();
       const input = document.getElementById('copilot-input');
-      const sendBtn = document.getElementById('copilot-send-btn');
+      if (!input) return;
       const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      await sendCopilotMessage(text);
+    }
+
+    async function sendCopilotMessage(text) {
       if (!text) return;
 
       appendCopilotBubble('user', text);
-      input.value = '';
-      sendBtn.disabled = true;
-      sendBtn.textContent = '...';
+
+      const sendBtn = document.getElementById('copilot-send-btn');
+      const drawerSendBtn = document.getElementById('copilot-drawer-send-btn');
+      if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '...'; }
+      if (drawerSendBtn) { drawerSendBtn.disabled = true; }
 
       copilotChatHistory.push({ role: 'user', content: text });
       if (copilotChatHistory.length > 12) {
         copilotChatHistory = copilotChatHistory.slice(-12);
       }
 
-      const provider = document.getElementById('copilot-provider-select').value;
-      const apiKey = document.getElementById('copilot-api-key').value.trim();
+      const provider = (document.getElementById('copilot-provider-select') || {}).value || 'builtin';
+      const apiKey = ((document.getElementById('copilot-api-key') || {}).value || '').trim();
 
       try {
         const res = await fetch('/api/copilot/chat', {
@@ -2443,8 +3057,8 @@
       } catch (err) {
         appendCopilotBubble('assistant', `⚠️ **Error:** ${err.message || String(err)}`);
       } finally {
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Send';
+        if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send'; }
+        if (drawerSendBtn) { drawerSendBtn.disabled = false; }
       }
     }
 
@@ -2466,43 +3080,48 @@
     }
 
     function appendCopilotBubble(role, text, action, provider) {
-      const feed = document.getElementById('copilot-chat-feed');
-      if (!feed) return;
+      const feeds = [
+        document.getElementById('copilot-chat-feed'),
+        document.getElementById('copilot-drawer-feed')
+      ];
 
-      const row = document.createElement('div');
-      row.style.display = 'flex';
-      row.style.gap = '10px';
-      row.style.alignItems = 'flex-start';
+      feeds.forEach(feed => {
+        if (!feed) return;
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.gap = '10px';
+        row.style.alignItems = 'flex-start';
 
-      if (role === 'user') {
-        row.style.justifyContent = 'flex-end';
-        row.innerHTML = `
-          <div style="background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 10px 0 10px 10px; font-size: 12.5px; line-height: 1.4; max-width: 85%;">
-            ${escapeHtml(text)}
-          </div>
-          <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;">U</div>
-        `;
-      } else {
-        let actionBtnHtml = '';
-        if (action && action.type === 'STRIKE_ENDPOINT' && action.payload && action.payload.capturedId) {
-          actionBtnHtml = `<div style="margin-top: 8px;"><button type="button" class="btn-launch" onclick="executeCopilotAction('STRIKE_ENDPOINT', '${escapeHtml(String(action.payload.capturedId))}')" style="padding: 4px 12px; font-size: 11px;">⚡ Strike ${escapeHtml(String(action.payload.capturedId))} Now</button></div>`;
-        } else if (action && action.type === 'SET_ATTACKER_GUEST') {
-          actionBtnHtml = `<div style="margin-top: 8px;"><button type="button" class="btn-launch" onclick="executeCopilotAction('SET_ATTACKER_GUEST')" style="padding: 4px 12px; font-size: 11px;">⚡ Arm Anonymous Guest Attacker</button></div>`;
-        } else if (action && action.type === 'VIEW_REPORT') {
-          actionBtnHtml = `<div style="margin-top: 8px;"><button type="button" class="btn btn-outline" onclick="executeCopilotAction('VIEW_REPORT')" style="padding: 4px 12px; font-size: 11px;">📋 View Finding in Receipts</button></div>`;
+        if (role === 'user') {
+          row.style.justifyContent = 'flex-end';
+          row.innerHTML = `
+            <div style="background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 10px 0 10px 10px; font-size: 12.5px; line-height: 1.4; max-width: 85%;">
+              ${escapeHtml(text)}
+            </div>
+            <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;">U</div>
+          `;
+        } else {
+          let actionBtnHtml = '';
+          if (action && action.type === 'STRIKE_ENDPOINT' && action.payload && action.payload.capturedId) {
+            actionBtnHtml = `<div style="margin-top: 8px;"><button type="button" class="btn-launch" onclick="executeCopilotAction('STRIKE_ENDPOINT', '${escapeHtml(String(action.payload.capturedId))}')" style="padding: 4px 12px; font-size: 11px;">⚡ Strike ${escapeHtml(String(action.payload.capturedId))} Now</button></div>`;
+          } else if (action && action.type === 'SET_ATTACKER_GUEST') {
+            actionBtnHtml = `<div style="margin-top: 8px;"><button type="button" class="btn-launch" onclick="executeCopilotAction('SET_ATTACKER_GUEST')" style="padding: 4px 12px; font-size: 11px;">⚡ Arm Anonymous Guest Attacker</button></div>`;
+          } else if (action && action.type === 'VIEW_REPORT') {
+            actionBtnHtml = `<div style="margin-top: 8px;"><button type="button" class="btn btn-outline" onclick="executeCopilotAction('VIEW_REPORT')" style="padding: 4px 12px; font-size: 11px;">📋 View Finding in Receipts</button></div>`;
+          }
+
+          row.innerHTML = `
+            <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">A</div>
+            <div style="background: #fff; border: 1px solid var(--line); padding: 10px 14px; border-radius: 0 10px 10px 10px; font-size: 12.5px; line-height: 1.5; color: var(--ink); max-width: 90%; box-shadow: var(--shadow-sm);">
+              ${renderMarkdownBasic(text)}
+              ${actionBtnHtml}
+            </div>
+          `;
         }
 
-        row.innerHTML = `
-          <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">A</div>
-          <div style="background: #fff; border: 1px solid var(--line); padding: 10px 14px; border-radius: 0 10px 10px 10px; font-size: 12.5px; line-height: 1.5; color: var(--ink); max-width: 90%;">
-            ${renderMarkdownBasic(text)}
-            ${actionBtnHtml}
-          </div>
-        `;
-      }
-
-      feed.appendChild(row);
-      feed.scrollTop = feed.scrollHeight;
+        feed.appendChild(row);
+        feed.scrollTop = feed.scrollHeight;
+      });
     }
 
     async function executeCopilotAction(type, payloadStr) {
@@ -2513,6 +3132,7 @@
         await setGuestAttacker();
         appendCopilotBubble('assistant', `✅ **Anonymous Guest Armed:** All captured endpoints now being audited for missing authentication.`);
       } else if (type === 'VIEW_REPORT') {
+        switchCockpitTab('receipts');
         const cont = document.getElementById('receipts-container');
         if (cont) cont.scrollIntoView({ behavior: 'smooth' });
       }

@@ -27,6 +27,8 @@ import {
   SolidityReentrancyStriker,
   SolidityProxyStriker,
   FoundryPocGenerator,
+  CopilotEngine,
+  COPILOT_PROVIDER_PRESETS,
   DualSessionContext,
   TargetScope
 } from './index.js';
@@ -1350,6 +1352,99 @@ describe('ASHBORN AUTONOMOUS HUNTER - SYSTEM TEST SUITE', () => {
       assert.match(attData.attackerAuthSummary, /Authorization Header/i);
     } finally {
       await new Promise<void>(resolve => cockpitServer.close(() => resolve()));
+    }
+  });
+
+  test('Upgrade 20: CopilotEngine handles live security context, commands, and free LLM presets', async () => {
+    const copilot = new CopilotEngine();
+    const context = {
+      targetUrl: 'https://white.market',
+      allowedHosts: ['white.market', '*.white.market'],
+      readOnlySafeMode: true,
+      attackerAuthSummary: 'Anonymous Guest (Auth Bypass / Info Disclosure)',
+      capturedEndpoints: [
+        {
+          id: 'cdp-1',
+          capturedAt: new Date().toISOString(),
+          url: 'https://api.white.market/graphql/api',
+          baseUrl: 'https://api.white.market',
+          path: '/graphql/api',
+          host: 'api.white.market',
+          method: 'POST' as const,
+          headers: { Cookie: 'session=123' },
+          resourceType: 'Fetch',
+          normalizedTemplate: 'POST:api.white.market:/graphql/api:CurrentCountry',
+          isHighValue: false,
+          authMode: 'Cookies',
+          curlCommand: "curl -X POST 'https://api.white.market/graphql/api'",
+          auditStatus: 'REFUTED_SAFE' as const,
+          auditReason: 'Access properly rejected with HTTP 401.',
+        },
+      ],
+      receipts: [],
+      reports: [],
+      logs: [],
+    };
+
+    // Test 1: System prompt generation includes live reality
+    const sysPrompt = CopilotEngine.buildSystemPrompt(context);
+    assert.ok(sysPrompt.includes('white.market'));
+    assert.ok(sysPrompt.includes('cdp-1'));
+    assert.ok(sysPrompt.includes('Anonymous Guest'));
+
+    // Test 2: Fallback query for status / findings
+    const findingsReply = await copilot.chat(
+      [{ role: 'user', content: 'What did you find on white.market so far?' }],
+      context,
+      { provider: 'builtin' }
+    );
+    assert.strictEqual(findingsReply.provider, 'builtin');
+    assert.ok(findingsReply.reply.includes('**Refuted Safe Endpoints:** 1'));
+
+    // Test 3: Fallback command for strike detection
+    const strikeReply = await copilot.chat(
+      [{ role: 'user', content: 'Strike cdp-1 in blast chamber' }],
+      context,
+      { provider: 'builtin' }
+    );
+    assert.strictEqual(strikeReply.action?.type, 'STRIKE_ENDPOINT');
+    assert.strictEqual(strikeReply.action?.payload?.capturedId, 'cdp-1');
+
+    // Test 4: Presets are exported and configured
+    assert.ok(COPILOT_PROVIDER_PRESETS.groq);
+    assert.ok(COPILOT_PROVIDER_PRESETS.gemini);
+    assert.ok(COPILOT_PROVIDER_PRESETS.openrouter);
+    assert.strictEqual(COPILOT_PROVIDER_PRESETS.groq.defaultModel, 'llama-3.3-70b-versatile');
+  });
+
+  test('Upgrade 21: Cockpit Server exposes /api/copilot/presets and /api/copilot/chat', async () => {
+    const { handleRequest } = await import('./server.js');
+    const server = createServer(handleRequest);
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+    const port = (server.address() as { port: number }).port;
+    const origin = `http://127.0.0.1:${port}`;
+
+    try {
+      const presetsRes = await fetch(`${origin}/api/copilot/presets`);
+      assert.strictEqual(presetsRes.status, 200);
+      const presetsData = await presetsRes.json() as { presets: Record<string, { name: string }> };
+      assert.ok(presetsData.presets.groq);
+      assert.ok(presetsData.presets.gemini);
+
+      const chatRes = await fetch(`${origin}/api/copilot/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: 'Draft a report for HackenProof' }],
+          provider: 'builtin',
+        }),
+      });
+      assert.strictEqual(chatRes.status, 200);
+      const chatData = await chatRes.json() as { reply: string; provider: string };
+      assert.strictEqual(chatData.provider, 'builtin');
+      assert.ok(chatData.reply.includes('Report'));
+    } finally {
+      await new Promise<void>(resolve => server.close(() => resolve()));
     }
   });
 });

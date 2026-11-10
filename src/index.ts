@@ -24,5 +24,6 @@ export * from './strikers/solidity_access_striker.js';
 export * from './strikers/solidity_reentrancy_striker.js';
 export * from './strikers/solidity_proxy_striker.js';
 export * from './reporter/foundry_poc_generator.js';
+export * from './copilot/copilot_engine.js';
 export * from './engine.js';
 

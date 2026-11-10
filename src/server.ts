@@ -8,11 +8,13 @@ import { TargetLedger } from './storage/target_ledger.js';
 import { TargetScope, DualSessionContext } from './types.js';
 import { runGroundTruthBenchmark } from './benchmark/benchmark_runner.js';
 import { COCKPIT_HTML } from './cockpit_html.js';
+import { CopilotEngine, COPILOT_PROVIDER_PRESETS, CopilotMessage, CopilotProvider, CopilotSecurityContext } from './copilot/copilot_engine.js';
 
 const PORT = 3000;
 const engine = new AshbornEngine({ enableHaddixMatrix: true });
 const ledger = new TargetLedger();
 const autopilot = new CdpAutopilot();
+const copilotEngine = new CopilotEngine();
 
 function readJsonBody(req: IncomingMessage): Promise<Record<string, unknown>> {
   return new Promise((resolve, reject) => {
@@ -386,6 +388,46 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       return sendJson(res, 400, { error: message });
+    }
+  }
+
+  // 6b. Shadow Co-Pilot AI Pair-Hunting Endpoints (BYOK / Free LLM APIs / Built-in Engine)
+  if (pathname === '/api/copilot/presets' && method === 'GET') {
+    return sendJson(res, 200, { presets: COPILOT_PROVIDER_PRESETS });
+  }
+
+  if (pathname === '/api/copilot/chat' && method === 'POST') {
+    try {
+      const payload = await readJsonBody(req);
+      const messages = Array.isArray(payload.messages) ? (payload.messages as CopilotMessage[]) : [];
+      const provider = (typeof payload.provider === 'string' ? payload.provider : 'builtin') as CopilotProvider;
+      const apiKey = typeof payload.apiKey === 'string' ? payload.apiKey.trim() : undefined;
+      const model = typeof payload.model === 'string' ? payload.model.trim() : undefined;
+      const customEndpoint = typeof payload.customEndpoint === 'string' ? payload.customEndpoint.trim() : undefined;
+
+      const autopilotStatus = autopilot.getStatus();
+      const securityContext: CopilotSecurityContext = {
+        targetUrl: autopilotStatus.targetUrl || 'https://white.market',
+        allowedHosts: autopilotStatus.allowedHosts.length > 0 ? autopilotStatus.allowedHosts : ['white.market', '*.white.market'],
+        readOnlySafeMode: autopilotStatus.readOnlySafeMode,
+        attackerAuthSummary: autopilotStatus.attackerAuthSummary,
+        capturedEndpoints: autopilotStatus.capturedEndpoints,
+        receipts: autopilotStatus.receipts,
+        reports: autopilotStatus.reports,
+        logs: autopilotStatus.logs,
+      };
+
+      const response = await copilotEngine.chat(messages, securityContext, {
+        provider,
+        apiKey,
+        model,
+        customEndpoint,
+      });
+
+      return sendJson(res, 200, response);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return sendJson(res, 500, { error: message });
     }
   }
 

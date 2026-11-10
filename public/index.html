@@ -1247,6 +1247,11 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             Configuration
           </button>
+          <button class="sidebar-link" onclick="openCopilotSection()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            Shadow Co-Pilot
+            <span class="sidebar-badge" style="background: var(--accent-soft); color: var(--accent);">AI</span>
+          </button>
         </div>
 
         <div class="sidebar-section">
@@ -1462,6 +1467,74 @@
           </div>
         </div>
 
+        <!-- Shadow Co-Pilot AI Pair-Hunter Panel -->
+        <div class="glass-card config-panel" id="copilot-section" style="margin-top: 24px;">
+          <div class="config-panel-header">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              Shadow Co-Pilot (AI Pair-Hunter)
+            </h3>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span class="brand-pill" id="copilot-provider-pill" style="background: var(--accent-soft); color: var(--accent);">Built-in Tactical</span>
+              <button type="button" class="btn btn-outline" onclick="toggleCopilotConfig()" style="padding: 4px 10px; font-size: 11px;">⚙️ Provider &amp; Free Key</button>
+            </div>
+          </div>
+
+          <!-- Provider & Free Key Drawer (collapsible) -->
+          <div id="copilot-config-drawer" style="display: none; padding: 14px; margin-bottom: 16px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.02); border: 1px solid var(--line);">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 10px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">LLM Provider (Free Options from GitHub Resource)</label>
+                <select id="copilot-provider-select" class="form-select" onchange="onCopilotProviderChange()">
+                  <option value="builtin">Built-in Tactical Engine (No API Key Required)</option>
+                  <option value="groq">Groq Free (Llama 3.3 70B - Ultra Fast)</option>
+                  <option value="gemini">Google AI Studio (Gemini 1.5/2.0 Flash - Free)</option>
+                  <option value="openrouter">OpenRouter Free Tier (:free models)</option>
+                  <option value="github">GitHub Models (Free with GitHub Token)</option>
+                  <option value="local">Local LM Studio / Ollama (localhost:1234)</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">
+                  API Key / Token
+                  <a id="copilot-doc-link" href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" style="font-size: 10.5px; color: var(--accent); margin-left: 6px; text-decoration: underline; display: none;">Get Free Key ↗</a>
+                </label>
+                <input type="password" id="copilot-api-key" class="form-input" placeholder="Paste free API key (saved in browser)..." oninput="saveCopilotSettings()">
+              </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--muted);">
+              <span>Model: <code id="copilot-model-display">ashborn-tactical-v1</code></span>
+              <button type="button" class="btn btn-ghost" onclick="toggleCopilotConfig()" style="font-size: 11px; padding: 2px 8px;">Done</button>
+            </div>
+          </div>
+
+          <!-- Quick Command Chips -->
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
+            <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('What did you find on white.market so far?')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">🎯 What did you find?</button>
+            <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Focus our attack hunt on user inventory and trade requests.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">⚡ Focus on inventory &amp; trade</button>
+            <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Explain why the last endpoint was refuted safe.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">🛡️ Why was /graphql/api safe?</button>
+            <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Draft a HackenProof bug bounty report for WhiteMarket.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">📝 Draft HackenProof report</button>
+            <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Set attacker mode to Anonymous Guest to test for missing authentication.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">🚀 Test as Guest</button>
+          </div>
+
+          <!-- Chat Feed Stream -->
+          <div id="copilot-chat-feed" style="max-height: 340px; min-height: 200px; overflow-y: auto; padding: 12px; border-radius: var(--radius-sm); background: rgba(0,0,0,0.02); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;">
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+              <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">A</div>
+              <div style="background: #fff; border: 1px solid var(--line); padding: 10px 14px; border-radius: 0 10px 10px 10px; font-size: 12.5px; line-height: 1.5; color: var(--ink); max-width: 90%;">
+                👋 <strong>I am your Ashborn Shadow Co-Pilot.</strong> I am actively linked into your live test session on <code style="color: var(--accent);">white.market</code>.<br><br>
+                You can give me instructions, tell me which endpoints to prioritize, ask why an endpoint was safe, or type <em>"Draft HackenProof report"</em>. Click a chip above or type below!
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Input Bar -->
+          <form id="copilot-form" onsubmit="handleCopilotSubmit(event)" style="display: flex; gap: 8px;">
+            <input type="text" id="copilot-input" class="form-input" placeholder="Give instructions or ask Co-Pilot (e.g. 'Strike endpoint cdp-1', 'Focus on orders')..." style="flex: 1;" autocomplete="off">
+            <button type="submit" id="copilot-send-btn" class="btn-launch" style="padding: 0 20px; font-size: 13px;">Send</button>
+          </form>
+        </div>
+
         <!-- Configuration Panel -->
         <div class="glass-card config-panel" id="config-section">
           <div class="config-panel-header">
@@ -1621,6 +1694,7 @@
         if (curlB) curlB.value = curlB.value.replace(/http:\/\/127\.0\.0\.1:3000/g, window.location.origin);
       }
       pollAutopilotStatus();
+      loadCopilotSettings();
     });
 
     function switchView(viewName) {
@@ -2260,6 +2334,188 @@
       `).join('');
 
       window.__LAST_REPORTS = reports;
+    }
+
+    // === SHADOW CO-PILOT (AI PAIR-HUNTER) ===
+    let copilotChatHistory = [];
+    const COPILOT_PRESET_MODELS = {
+      builtin: { name: 'Built-in Tactical', model: 'ashborn-tactical-v1', doc: '' },
+      groq: { name: 'Groq Free (Llama 3.3)', model: 'llama-3.3-70b-versatile', doc: 'https://console.groq.com/keys' },
+      gemini: { name: 'Google AI Studio (Gemini)', model: 'gemini-1.5-flash', doc: 'https://aistudio.google.com/app/apikey' },
+      openrouter: { name: 'OpenRouter Free', model: 'meta-llama/llama-3.3-70b-instruct:free', doc: 'https://openrouter.ai/keys' },
+      github: { name: 'GitHub Models', model: 'gpt-4o-mini', doc: 'https://github.com/marketplace/models' },
+      local: { name: 'Local LM Studio', model: 'local-model', doc: 'https://lmstudio.ai' },
+    };
+
+    function openCopilotSection() {
+      switchView('cockpit');
+      const el = document.getElementById('copilot-section');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function toggleCopilotConfig() {
+      const drawer = document.getElementById('copilot-config-drawer');
+      if (!drawer) return;
+      drawer.style.display = drawer.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function onCopilotProviderChange() {
+      const provider = document.getElementById('copilot-provider-select').value;
+      const meta = COPILOT_PRESET_MODELS[provider] || COPILOT_PRESET_MODELS.builtin;
+      document.getElementById('copilot-provider-pill').textContent = meta.name;
+      document.getElementById('copilot-model-display').textContent = meta.model;
+
+      const docLink = document.getElementById('copilot-doc-link');
+      if (meta.doc) {
+        docLink.href = meta.doc;
+        docLink.style.display = 'inline';
+      } else {
+        docLink.style.display = 'none';
+      }
+      saveCopilotSettings();
+    }
+
+    function saveCopilotSettings() {
+      const provider = document.getElementById('copilot-provider-select').value;
+      const apiKey = document.getElementById('copilot-api-key').value.trim();
+      try {
+        localStorage.setItem('ashborn_copilot_provider', provider);
+        localStorage.setItem('ashborn_copilot_key', apiKey);
+      } catch {}
+    }
+
+    function loadCopilotSettings() {
+      try {
+        const p = localStorage.getItem('ashborn_copilot_provider');
+        const k = localStorage.getItem('ashborn_copilot_key');
+        if (p && document.getElementById('copilot-provider-select')) {
+          document.getElementById('copilot-provider-select').value = p;
+        }
+        if (k && document.getElementById('copilot-api-key')) {
+          document.getElementById('copilot-api-key').value = k;
+        }
+        onCopilotProviderChange();
+      } catch {}
+    }
+
+    function sendQuickPrompt(promptText) {
+      const input = document.getElementById('copilot-input');
+      if (!input) return;
+      input.value = promptText;
+      handleCopilotSubmit(new Event('submit'));
+    }
+
+    async function handleCopilotSubmit(event) {
+      if (event && event.preventDefault) event.preventDefault();
+      const input = document.getElementById('copilot-input');
+      const sendBtn = document.getElementById('copilot-send-btn');
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendCopilotBubble('user', text);
+      input.value = '';
+      sendBtn.disabled = true;
+      sendBtn.textContent = '...';
+
+      copilotChatHistory.push({ role: 'user', content: text });
+      if (copilotChatHistory.length > 12) {
+        copilotChatHistory = copilotChatHistory.slice(-12);
+      }
+
+      const provider = document.getElementById('copilot-provider-select').value;
+      const apiKey = document.getElementById('copilot-api-key').value.trim();
+
+      try {
+        const res = await fetch('/api/copilot/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: copilotChatHistory,
+            provider,
+            apiKey: apiKey || undefined,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Co-Pilot request failed');
+
+        copilotChatHistory.push({ role: 'assistant', content: data.reply });
+        appendCopilotBubble('assistant', data.reply, data.action, data.provider);
+      } catch (err) {
+        appendCopilotBubble('assistant', `⚠️ **Error:** ${err.message || String(err)}`);
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send';
+      }
+    }
+
+    function renderMarkdownBasic(txt) {
+      let html = escapeHtml(txt);
+      // Code blocks
+      html = html.replace(/```(?:bash|json|graphql|javascript|markdown)?\n([\s\S]*?)```/g, '<pre style="background: rgba(0,0,0,0.06); padding: 8px 12px; border-radius: 6px; overflow-x: auto; font-size: 11px; margin: 6px 0;"><code>$1</code></pre>');
+      // Inline code
+      html = html.replace(/`([^`]+)`/g, '<code style="background: rgba(0,0,0,0.05); padding: 2px 5px; border-radius: 4px; font-size: 11px;">$1</code>');
+      // Bold
+      html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+      // Headings
+      html = html.replace(/^### (.*$)/gim, '<h4 style="margin: 8px 0 4px; font-size: 13px;">$1</h4>');
+      html = html.replace(/^## (.*$)/gim, '<h3 style="margin: 10px 0 6px; font-size: 14px;">$1</h3>');
+      // Line breaks
+      html = html.replace(/\n/g, '<br>');
+      return html;
+    }
+
+    function appendCopilotBubble(role, text, action, provider) {
+      const feed = document.getElementById('copilot-chat-feed');
+      if (!feed) return;
+
+      const row = document.createElement('div');
+      row.style.display = 'flex';
+      row.style.gap = '10px';
+      row.style.alignItems = 'flex-start';
+
+      if (role === 'user') {
+        row.style.justifyContent = 'flex-end';
+        row.innerHTML = `
+          <div style="background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 10px 0 10px 10px; font-size: 12.5px; line-height: 1.4; max-width: 85%;">
+            ${escapeHtml(text)}
+          </div>
+          <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;">U</div>
+        `;
+      } else {
+        let actionBtnHtml = '';
+        if (action && action.type === 'STRIKE_ENDPOINT' && action.payload && action.payload.capturedId) {
+          actionBtnHtml = `<div style="margin-top: 8px;"><button type="button" class="btn-launch" onclick="executeCopilotAction('STRIKE_ENDPOINT', '${escapeHtml(String(action.payload.capturedId))}')" style="padding: 4px 12px; font-size: 11px;">⚡ Strike ${escapeHtml(String(action.payload.capturedId))} Now</button></div>`;
+        } else if (action && action.type === 'SET_ATTACKER_GUEST') {
+          actionBtnHtml = `<div style="margin-top: 8px;"><button type="button" class="btn-launch" onclick="executeCopilotAction('SET_ATTACKER_GUEST')" style="padding: 4px 12px; font-size: 11px;">⚡ Arm Anonymous Guest Attacker</button></div>`;
+        } else if (action && action.type === 'VIEW_REPORT') {
+          actionBtnHtml = `<div style="margin-top: 8px;"><button type="button" class="btn btn-outline" onclick="executeCopilotAction('VIEW_REPORT')" style="padding: 4px 12px; font-size: 11px;">📋 View Finding in Receipts</button></div>`;
+        }
+
+        row.innerHTML = `
+          <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">A</div>
+          <div style="background: #fff; border: 1px solid var(--line); padding: 10px 14px; border-radius: 0 10px 10px 10px; font-size: 12.5px; line-height: 1.5; color: var(--ink); max-width: 90%;">
+            ${renderMarkdownBasic(text)}
+            ${actionBtnHtml}
+          </div>
+        `;
+      }
+
+      feed.appendChild(row);
+      feed.scrollTop = feed.scrollHeight;
+    }
+
+    async function executeCopilotAction(type, payloadStr) {
+      if (type === 'STRIKE_ENDPOINT') {
+        await strikeCapturedEndpoint(payloadStr);
+        appendCopilotBubble('assistant', `✅ **Strike Initiated on \`${payloadStr}\`**: Check the Live Stream and stats above for real-time differential verdict!`);
+      } else if (type === 'SET_ATTACKER_GUEST') {
+        await setGuestAttacker();
+        appendCopilotBubble('assistant', `✅ **Anonymous Guest Armed:** All captured endpoints now being audited for missing authentication.`);
+      } else if (type === 'VIEW_REPORT') {
+        const cont = document.getElementById('receipts-container');
+        if (cont) cont.scrollIntoView({ behavior: 'smooth' });
+      }
     }
 
     function copyReport(index) {

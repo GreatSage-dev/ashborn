@@ -50,6 +50,8 @@ export interface CapturedTrafficItem {
   normalizedTemplate: string;
   isHighValue: boolean;
   authMode: string;
+  isGraphQlRead?: boolean;
+  operationName?: string;
   curlCommand: string;
   auditStatus: CapturedAuditStatus;
   auditReason?: string;
@@ -253,15 +255,24 @@ export class CdpScout {
 
   /**
    * Collapses per-record IDs into a canonical template key to prevent redundant probing.
+   * For GraphQL endpoints, binds operationName so each query is audited independently.
    */
-  public static normalizeEndpointTemplate(urlStr: string, method: HttpMethod): string {
+  public static normalizeEndpointTemplate(urlStr: string, method: HttpMethod, body?: string): string {
     try {
       const parsed = new URL(urlStr);
-      const normalizedPath = parsed.pathname
+      let normalizedPath = parsed.pathname
         .replace(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g, '{uuid}')
         .replace(/\/(\d+)(?=\/|$)/g, '/{id}')
         .replace(/\/[a-zA-Z]{2,10}_[a-zA-Z0-9_\-]{2,}(?=\/|$)/g, '/{record_id}')
         .replace(/\/[0-9a-f]{24}(?=\/|$)/gi, '/{object_id}');
+
+      if (body && parsed.pathname.includes('graphql')) {
+        const opMatch = body.match(/"operationName"\s*:\s*"([^"]+)"/) || body.match(/(?:query|mutation)\s+([A-Za-z0-9_]+)/);
+        if (opMatch && opMatch[1]) {
+          normalizedPath += `:${opMatch[1]}`;
+        }
+      }
+
       return `${method}:${parsed.hostname.toLowerCase()}:${normalizedPath}`;
     } catch {
       return `${method}:${urlStr}`;
@@ -879,12 +890,24 @@ export class CdpAutopilot {
     }
 
     const extractedResourceId = CurlParser.extractResourceId(parsedUrl, pending.postData);
-    const normalizedTemplate = CdpScout.normalizeEndpointTemplate(pending.url, methodUpper);
+    const normalizedTemplate = CdpScout.normalizeEndpointTemplate(pending.url, methodUpper, pending.postData);
     const authMode = CdpScout.describeAuthHeaders(mergedHeaders);
     const path = parsedUrl.pathname + parsedUrl.search;
+    const isGraphQlRead =
+      methodUpper === 'POST' &&
+      parsedUrl.pathname.includes('graphql') &&
+      Boolean(pending.postData) &&
+      !/\bmutation\b/i.test(pending.postData || '');
+    const opMatch = pending.postData
+      ? pending.postData.match(/"operationName"\s*:\s*"([^"]+)"/) || pending.postData.match(/(?:query|mutation)\s+([A-Za-z0-9_]+)/)
+      : null;
+    const operationName = opMatch ? opMatch[1] : undefined;
+
     const isHighValue =
       Boolean(extractedResourceId) ||
-      /(user|account|org|order|invoice|trade|wallet|inventory|profile|api_key|session|address|withdraw)/i.test(path);
+      /(user|account|org|order|invoice|trade|wallet|inventory|profile|api_key|session|address|withdraw)/i.test(
+        path + (pending.postData || '')
+      );
 
     const item: CapturedTrafficItem = {
       id: `cdp-${++this.itemSeq}`,
@@ -902,6 +925,8 @@ export class CdpAutopilot {
       normalizedTemplate,
       isHighValue,
       authMode,
+      isGraphQlRead,
+      operationName,
       curlCommand: CdpScout.synthesizeCurl(pending.url, methodUpper, mergedHeaders, pending.postData),
       auditStatus: 'CAPTURED',
     };
@@ -963,8 +988,8 @@ export class CdpAutopilot {
       return;
     }
 
-    // 3. Read-Only Safe Mode guard for passive browsing
-    if (!allowMutations && item.method !== 'GET') {
+    // 3. Read-Only Safe Mode guard for passive browsing (allows GET and read-only GraphQL queries)
+    if (!allowMutations && item.method !== 'GET' && !item.isGraphQlRead) {
       item.auditStatus = 'SKIPPED_MUTATING';
       item.auditReason = 'Paused in Read-Only Safe Mode. Click Strike to test manually.';
       return;
@@ -1022,7 +1047,7 @@ export class CdpAutopilot {
       path: item.path,
       method: item.method,
       parameters: item.extractedResourceId ? ['id'] : [],
-      isStateMutating: item.method !== 'GET',
+      isStateMutating: item.method !== 'GET' && !item.isGraphQlRead,
       sourceBundle: 'curl_ingress',
       sampleBody: item.body,
     };

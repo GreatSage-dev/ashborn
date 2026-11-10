@@ -193,9 +193,9 @@ export class BlastChamber {
           leakConfirmed = text.includes(leakFingerprint) || (statusCode === 204 && Boolean(candidate.body?.includes('role')));
         } else if (candidate.expectedLeakFragment) {
           leakConfirmed = text.includes(candidate.expectedLeakFragment);
-        } else if (baselineText && baselineStatus === 200) {
-          // Two-sided differential: probe matches authorized baseline payload
-          leakConfirmed = text.length > 0 && text === baselineText;
+        } else if (baselineText && baselineStatus >= 200 && baselineStatus < 300) {
+          // Two-sided differential: probe matches authorized baseline payload containing non-trivial tenant data
+          leakConfirmed = this.isDifferentialTenantMatch(baselineText, text);
         } else {
           leakConfirmed = false;
         }
@@ -258,14 +258,88 @@ export class BlastChamber {
   }
 
   /**
-   * Generates a reproducible curl command.
+   * Verifies two-sided differential equality while excluding empty-state collections
+   * (e.g. two fresh accounts both returning {"data": [], "total": 0}) and volatile trace timestamps.
+   */
+  private isDifferentialTenantMatch(baselineText: string, probeText: string): boolean {
+    const baseTrimmed = baselineText.trim();
+    const probeTrimmed = probeText.trim();
+    if (!baseTrimmed || !probeTrimmed || baseTrimmed === '{}' || baseTrimmed === '[]') {
+      return false;
+    }
+
+    const envelopeNoiseKeys = new Set([
+      'status', 'success', 'ok', 'code', 'message', 'meta', 'pagination',
+      'page', 'per_page', 'perpage', 'limit', 'offset', 'total', 'count',
+      'unread_count', 'has_more', 'hasmore', 'links', 'timestamp',
+      'servertime', 'requestid', 'request_id', 'traceid', 'trace_id', 'correlationid',
+    ]);
+
+    const volatileTraceKeys = new Set([
+      'timestamp', 'servertime', 'requestid', 'request_id', 'traceid', 'trace_id', 'correlationid',
+    ]);
+
+    const hasSubstantivePayload = (node: unknown): boolean => {
+      if (node === null || node === undefined) return false;
+      if (typeof node === 'string') {
+        const s = node.trim().toLowerCase();
+        return s.length > 0 && s !== 'ok' && s !== 'success' && s !== 'true' && s !== 'false' && s !== 'none';
+      }
+      if (typeof node === 'number') {
+        return node !== 0;
+      }
+      if (typeof node === 'boolean') {
+        return false;
+      }
+      if (Array.isArray(node)) {
+        return node.length > 0 && node.some(item => hasSubstantivePayload(item));
+      }
+      if (typeof node === 'object') {
+        for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+          if (envelopeNoiseKeys.has(k.toLowerCase())) continue;
+          if (hasSubstantivePayload(v)) return true;
+        }
+        return false;
+      }
+      return false;
+    };
+
+    const stripVolatile = (node: unknown): unknown => {
+      if (Array.isArray(node)) {
+        return node.map(stripVolatile);
+      }
+      if (node !== null && typeof node === 'object') {
+        const cleaned: Record<string, unknown> = {};
+        for (const key of Object.keys(node as Record<string, unknown>).sort()) {
+          if (volatileTraceKeys.has(key.toLowerCase())) continue;
+          cleaned[key] = stripVolatile((node as Record<string, unknown>)[key]);
+        }
+        return cleaned;
+      }
+      return node;
+    };
+
+    try {
+      const baseJson = JSON.parse(baseTrimmed);
+      const probeJson = JSON.parse(probeTrimmed);
+      if (!hasSubstantivePayload(baseJson)) {
+        return false;
+      }
+      return JSON.stringify(stripVolatile(baseJson)) === JSON.stringify(stripVolatile(probeJson));
+    } catch {
+      return baseTrimmed.length > 16 && baseTrimmed === probeTrimmed;
+    }
+  }
+
+  /**
+   * Generates a reproducible curl command with safe shell escaping.
    */
   private generateCurl(candidate: ExploitCandidate): string {
     const headerFlags = Object.entries(candidate.headers)
-      .map(([k, v]) => `-H "${k}: ${v}"`)
+      .map(([k, v]) => `-H "${k}: ${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`)
       .join(' ');
     
-    const bodyFlag = candidate.body ? `-d '${candidate.body}'` : '';
+    const bodyFlag = candidate.body ? `-d '${candidate.body.replace(/'/g, "'\\''")}'` : '';
     return `curl -s -X ${candidate.method} "${candidate.targetUrl}" ${headerFlags} ${bodyFlag}`.trim();
   }
 

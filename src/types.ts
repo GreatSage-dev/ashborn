@@ -29,6 +29,7 @@ export interface DiscoveredEndpoint {
   parameters: string[];
   isStateMutating: boolean;
   sourceBundle?: string;
+  sampleBody?: string;
 }
 
 export interface DualSessionContext {
@@ -36,6 +37,8 @@ export interface DualSessionContext {
   victimResourceId: string;
   victimSecretIdentifier?: string; // Optional manual fingerprint; if omitted, differential testing auto-extracts it from User A's baseline
   attackerToken: string;
+  victimHeaders?: Record<string, string>; // Full session headers (Cookie, X-XSRF-TOKEN, custom auth) for User A
+  attackerHeaders?: Record<string, string>; // Full session headers (Cookie, X-XSRF-TOKEN, custom auth) for User B
 }
 
 export interface ExploitCandidate {

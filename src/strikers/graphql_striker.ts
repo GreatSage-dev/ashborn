@@ -1,6 +1,6 @@
 import { ExploitCandidate, DualSessionContext } from '../types.js';
 import { GraphQLField } from '../scout/graphql_parser.js';
-import { REALISTIC_BROWSER_HEADERS } from './idor_striker.js';
+import { REALISTIC_BROWSER_HEADERS, buildSessionHeaders } from './idor_striker.js';
 
 export interface GraphQLStrikerOptions {
   selectionSet?: string; // Fields to select, e.g. "{ id secret confidential amount status }"
@@ -48,17 +48,13 @@ export class GraphQLStriker {
       variables: attackerVariables,
     });
 
-    const headers = {
-      ...REALISTIC_BROWSER_HEADERS,
-      'Authorization': `Bearer ${context.attackerToken}`,
+    const headers = buildSessionHeaders(context.attackerToken, context.attackerHeaders, {
       'Content-Type': 'application/json',
-    };
+    });
 
-    const baselineHeaders = {
-      ...REALISTIC_BROWSER_HEADERS,
-      'Authorization': `Bearer ${context.victimToken}`,
+    const baselineHeaders = buildSessionHeaders(context.victimToken, context.victimHeaders, {
       'Content-Type': 'application/json',
-    };
+    });
 
     return [
       {

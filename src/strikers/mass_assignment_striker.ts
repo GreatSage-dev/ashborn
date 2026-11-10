@@ -1,8 +1,9 @@
 import { DiscoveredEndpoint, ExploitCandidate } from '../types.js';
-import { REALISTIC_BROWSER_HEADERS } from './idor_striker.js';
+import { buildSessionHeaders } from './idor_striker.js';
 
 export interface MassAssignmentPayloadConfig {
   privilegedKeys?: Record<string, unknown>;
+  sessionHeaders?: Record<string, string>;
 }
 
 /**
@@ -54,11 +55,9 @@ export class MassAssignmentStriker {
         vector: 'MASS_ASSIGNMENT_VIOLATION',
         targetUrl: fullUrl,
         method: endpoint.method,
-        headers: {
-          ...REALISTIC_BROWSER_HEADERS,
-          'Authorization': `Bearer ${authToken}`,
+        headers: buildSessionHeaders(authToken, config.sessionHeaders, {
           'Content-Type': 'application/json',
-        },
+        }),
         body: JSON.stringify(privilegedPayload),
         expectedLeakFragment: '"role":"admin"',
       },

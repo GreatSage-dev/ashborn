@@ -7,6 +7,7 @@ export * from './types.js';
 export * from './scout/bundle_extractor.js';
 export * from './scout/openapi_parser.js';
 export * from './scout/curl_parser.js';
+export * from './scout/cdp_scout.js';
 export * from './scout/postman_parser.js';
 export * from './scout/graphql_parser.js';
 export * from './storage/target_ledger.js';

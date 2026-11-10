@@ -1,6 +1,8 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, Server, IncomingMessage, ServerResponse } from 'node:http';
+import { createHash } from 'node:crypto';
+import type { Duplex } from 'node:stream';
 
 import { 
   BundleExtractor, 
@@ -9,6 +11,8 @@ import {
   GraphQLParser,
   GraphQLStriker,
   CurlParser,
+  CdpScout,
+  CdpAutopilot,
   TargetLedger,
   HaddixMatrix,
   JwtMutator, 
@@ -175,6 +179,66 @@ describe('ASHBORN AUTONOMOUS HUNTER - SYSTEM TEST SUITE', () => {
             res.end();
           }
         });
+        return;
+      }
+
+      // ROUTE 6: Cookie + CSRF Authenticated Endpoint (Laravel Sanctum / Session style, vulnerable to IDOR)
+      if (url.startsWith('/api/v2/address-book/') && method === 'GET') {
+        const cookieHeader = req.headers['cookie'] || '';
+        const xsrfHeader = req.headers['x-xsrf-token'] || '';
+
+        // If unexpected Authorization header is injected on cookie-only backend, reject like strict auth middleware
+        if (req.headers['authorization']) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Unexpected Authorization scheme' }));
+          return;
+        }
+
+        const isVictimSession = cookieHeader.includes('app_session=victim_sess_aaa') && xsrfHeader === 'victim_xsrf_111';
+        const isAttackerSession = cookieHeader.includes('app_session=attacker_sess_bbb') && xsrfHeader === 'attacker_xsrf_222';
+
+        if (isVictimSession || isAttackerSession) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            id: 'addr_victim_77',
+            label: 'Cold Storage Vault',
+            ownerEmail: 'alice.victim@example.com',
+            privateNotes: 'CONFIDENTIAL_WALLET_ADDR_0x998877',
+          }));
+          return;
+        }
+
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthenticated or CSRF mismatch' }));
+        return;
+      }
+
+      // ROUTE 7: Public Global Config Endpoint (Identical 200 response even without auth — NOT an IDOR)
+      if (url === '/api/v2/currencies') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          currencies: [
+            { code: 'USD', symbol: '$' },
+            { code: 'EUR', symbol: '€' },
+          ],
+        }));
+        return;
+      }
+
+      // ROUTE 8: Authenticated Empty Collection (Two fresh accounts both have 0 items — NOT an IDOR)
+      if (url === '/api/v2/notifications') {
+        const cookieHeader = req.headers['cookie'] || '';
+        if (cookieHeader.includes('app_session=')) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            status: 'ok',
+            data: [],
+            meta: { total: 0, page: 1 },
+          }));
+          return;
+        }
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized' }));
         return;
       }
 
@@ -838,5 +902,454 @@ describe('ASHBORN AUTONOMOUS HUNTER - SYSTEM TEST SUITE', () => {
     assert.ok(reentrancyFinding);
     assert.strictEqual(reentrancyFinding?.functionName, 'exitPool');
     assert.ok(reentrancyFinding?.foundryPocCode?.includes('test_exploit_reentrancyDrain'));
+  });
+
+  test('Upgrade 14: CurlParser supports Chrome -b/--cookie, --url, Windows CMD ^" escapes, and duplicate session guard', () => {
+    // 1. Chrome Bash format with --url, -b cookies, and lowercase x-xsrf-token
+    const chromeBashCurl = `curl --url 'https://app.example.com/api/v2/sessions/sess_alpha_42' \\
+      -H 'accept: application/json' \\
+      -H 'x-xsrf-token: xsrf_tok_user_a' \\
+      -b 'laravel_session=eyJpdiI6ImFhYSI9; XSRF-TOKEN=xsrf_tok_user_a'`;
+
+    const parsedBash = CurlParser.parse(chromeBashCurl);
+    assert.strictEqual(parsedBash.rawUrl, 'https://app.example.com/api/v2/sessions/sess_alpha_42');
+    assert.strictEqual(parsedBash.cookies['laravel_session'], 'eyJpdiI6ImFhYSI9');
+    assert.strictEqual(parsedBash.cookies['XSRF-TOKEN'], 'xsrf_tok_user_a');
+    assert.ok(parsedBash.headers['cookie']?.includes('laravel_session=eyJpdiI6ImFhYSI9'));
+    assert.strictEqual(parsedBash.csrfToken, 'xsrf_tok_user_a');
+    assert.strictEqual(parsedBash.extractedResourceId, 'sess_alpha_42');
+
+    // 2. Windows Chrome "Copy as cURL (cmd)" format with ^ continuations, ^\^" inner quotes, ^& query params, and -b
+    const chromeCmdCurl = [
+      'curl "https://app.example.com/api/v2/orders/9081?expand=items^&currency=USD" ^',
+      '  -H "accept: application/json" ^',
+      '  -H "sec-ch-ua: ^\\^"Chromium^\\^";v=^\\^"124^\\^"" ^',
+      '  -H "x-csrf-token: cmd_csrf_77" ^',
+      '  -b "app_session=sess_cmd_b_999; theme=dark" ^',
+      '  --data-raw "{\\"note\\":\\"test\\"}"',
+    ].join('\r\n');
+
+    const parsedCmd = CurlParser.parse(chromeCmdCurl);
+    assert.strictEqual(parsedCmd.path, '/api/v2/orders/9081?expand=items&currency=USD');
+    assert.strictEqual(parsedCmd.method, 'POST');
+    assert.strictEqual(parsedCmd.cookies['app_session'], 'sess_cmd_b_999');
+    assert.strictEqual(parsedCmd.csrfToken, 'cmd_csrf_77');
+    assert.strictEqual(parsedCmd.extractedResourceId, '9081');
+
+    // 3. Duplicate session guard: pasting User A's cURL twice must be caught deterministically
+    assert.throws(
+      () => CurlParser.buildDualContextFromCurls(chromeBashCurl, chromeBashCurl),
+      /Identical session credentials/i
+    );
+  });
+
+  test('Upgrade 15: AshbornEngine executes Cookie + CSRF cURL audit and refutes public/empty endpoints with 0 false alarms', async () => {
+    const engine = new AshbornEngine({
+      ledgerBaseDir: 'targets_test_temp_cookie',
+      enableHaddixMatrix: true,
+    });
+
+    // 1. Vulnerable Cookie + XSRF-TOKEN endpoint (Chrome -b export) -> MUST CONFIRM
+    const victimCookieCurl = `curl '${BASE_URL}/api/v2/address-book/addr_victim_77' \\
+      -H 'accept: application/json' \\
+      -H 'x-xsrf-token: victim_xsrf_111' \\
+      -b 'app_session=victim_sess_aaa; XSRF-TOKEN=victim_xsrf_111'`;
+
+    const attackerCookieCurl = `curl '${BASE_URL}/api/v2/address-book/addr_attacker_88' \\
+      -H 'accept: application/json' \\
+      -H 'x-xsrf-token: attacker_xsrf_222' \\
+      -b 'app_session=attacker_sess_bbb; XSRF-TOKEN=attacker_xsrf_222'`;
+
+    const vulnAudit = await engine.auditTargetWithCurls(victimCookieCurl, attackerCookieCurl, 'cookie_bounty_prog');
+    assert.strictEqual(vulnAudit.confirmedReceipts.length, 1, 'Must confirm Cookie+XSRF cross-tenant IDOR');
+    assert.strictEqual(vulnAudit.confirmedReceipts[0].statusCode, 200);
+    assert.ok(vulnAudit.confirmedReceipts[0].rawCurl.toLowerCase().includes('cookie'));
+    assert.ok(vulnAudit.confirmedReceipts[0].rawCurl.toLowerCase().includes('x-xsrf-token'));
+
+    // 2. Public Global Config endpoint (/api/v2/currencies) -> MUST REFUTE (0 receipts)
+    const pubUserACurl = `curl '${BASE_URL}/api/v2/currencies' -b 'app_session=victim_sess_aaa'`;
+    const pubUserBCurl = `curl '${BASE_URL}/api/v2/currencies' -b 'app_session=attacker_sess_bbb'`;
+
+    const publicAudit = await engine.auditTargetWithCurls(pubUserACurl, pubUserBCurl, 'cookie_bounty_prog');
+    assert.strictEqual(publicAudit.confirmedReceipts.length, 0, 'Public endpoint MUST produce 0 false-positive receipts');
+
+    // 3. Authenticated Empty Collection (/api/v2/notifications returning data: []) -> MUST REFUTE (0 receipts)
+    const emptyUserACurl = `curl '${BASE_URL}/api/v2/notifications' -b 'app_session=victim_sess_aaa'`;
+    const emptyUserBCurl = `curl '${BASE_URL}/api/v2/notifications' -b 'app_session=attacker_sess_bbb'`;
+
+    const emptyAudit = await engine.auditTargetWithCurls(emptyUserACurl, emptyUserBCurl, 'cookie_bounty_prog');
+    assert.strictEqual(emptyAudit.confirmedReceipts.length, 0, 'Empty collection MUST produce 0 false-positive receipts');
+
+    // Clean up temporary test dir
+    const fs = await import('fs');
+    try { fs.rmSync('targets_test_temp_cookie', { recursive: true, force: true }); } catch {}
+  });
+
+  test('Upgrade 16: Cockpit Server /api/audit/curl executes built-in demo cURLs and rejects duplicate sessions with HTTP 400', async () => {
+    const { handleRequest } = await import('./server.js');
+    const cockpitServer = createServer(handleRequest);
+    await new Promise<void>(resolve => cockpitServer.listen(0, '127.0.0.1', () => resolve()));
+    const addr = cockpitServer.address();
+    const cockpitPort = typeof addr === 'object' && addr ? addr.port : 39991;
+    const cockpitOrigin = `http://127.0.0.1:${cockpitPort}`;
+
+    try {
+      // 1. Valid dual-session cURL audit against built-in demo workspace
+      const validRes = await fetch(`${cockpitOrigin}/api/audit/curl`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userACurl: `curl '${cockpitOrigin}/api/demo/workspaces/rec_octane_881' -H 'Authorization: Bearer token_victim_user_a'`,
+          userBCurl: `curl '${cockpitOrigin}/api/demo/workspaces/rec_octane_881' -H 'Authorization: Bearer ashborn_hunter_token_session_b'`,
+          programName: 'cockpit_demo_test',
+        }),
+      });
+      assert.strictEqual(validRes.status, 200);
+      const validData = await validRes.json() as {
+        confirmedReceipts: Array<{ statusCode: number }>;
+        ingressSummary: { method: string; victimAuthMode: string };
+      };
+      assert.strictEqual(validData.confirmedReceipts.length, 1);
+      assert.strictEqual(validData.ingressSummary.method, 'GET');
+      assert.strictEqual(validData.ingressSummary.victimAuthMode, 'Authorization Header');
+
+      // 2. Duplicate session error must return HTTP 400 (not silent 200 All Clear)
+      const dupRes = await fetch(`${cockpitOrigin}/api/audit/curl`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userACurl: `curl '${cockpitOrigin}/api/demo/workspaces/rec_octane_881' -b 'sid=same_session_123'`,
+          userBCurl: `curl '${cockpitOrigin}/api/demo/workspaces/rec_octane_881' -b 'sid=same_session_123'`,
+        }),
+      });
+      assert.strictEqual(dupRes.status, 400);
+      const dupData = await dupRes.json() as { error: string };
+      assert.match(dupData.error, /Identical session credentials/i);
+    } finally {
+      await new Promise<void>(resolve => cockpitServer.close(() => resolve()));
+      const fs = await import('fs');
+      try { fs.rmSync('targets/cockpit_demo_test', { recursive: true, force: true }); } catch {}
+    }
+  });
+
+  test('Upgrade 17: CdpScout filters API candidates, merges ExtraInfo HttpOnly cookies, and normalizes templates', () => {
+    // 1. Static assets, analytics, and out-of-scope domains MUST be ignored
+    assert.strictEqual(
+      CdpScout.isApiTrafficCandidate('https://api.white.market/v2/orders/9981', 'XHR', 'application/json', ['white.market', '*.white.market']),
+      true
+    );
+    assert.strictEqual(
+      CdpScout.isApiTrafficCandidate('https://white.market/static/logo.png', 'Image', 'image/png', ['white.market', '*.white.market']),
+      false
+    );
+    assert.strictEqual(
+      CdpScout.isApiTrafficCandidate('https://www.google-analytics.com/g/collect', 'XHR', 'text/plain', ['white.market', '*.white.market']),
+      false
+    );
+    assert.strictEqual(
+      CdpScout.isApiTrafficCandidate('https://evil-thirdparty.com/api/v1/steal', 'Fetch', 'application/json', ['white.market', '*.white.market']),
+      false
+    );
+
+    // 2. Merge CDP requestWillBeSent headers + requestWillBeSentExtraInfo (with Cookie) + fallback Network.getCookies
+    const mergedWithExtra = CdpScout.mergeCdpHeaders(
+      { 'Accept': 'application/json', 'Host': 'api.white.market', 'X-XSRF-TOKEN': 'xsrf_abc' },
+      { 'cookie': 'app_session=http_only_secret; XSRF-TOKEN=xsrf_abc', 'content-length': '128' },
+      []
+    );
+    assert.strictEqual(mergedWithExtra['Host'], undefined, 'Hop-by-hop headers must be stripped');
+    assert.strictEqual(mergedWithExtra['content-length'], undefined);
+    assert.strictEqual(mergedWithExtra['Cookie'], 'app_session=http_only_secret; XSRF-TOKEN=xsrf_abc');
+    assert.strictEqual(mergedWithExtra['X-XSRF-TOKEN'], 'xsrf_abc');
+
+    // 3. Fallback cookie serialization when ExtraInfo omits Cookie
+    const mergedWithRpcCookies = CdpScout.mergeCdpHeaders(
+      { 'Accept': 'application/json' },
+      {},
+      [{ name: 'sid', value: 'rpc_cookie_777' }, { name: 'theme', value: 'dark' }]
+    );
+    assert.strictEqual(mergedWithRpcCookies['Cookie'], 'sid=rpc_cookie_777; theme=dark');
+
+    // 4. Template normalization collapses per-ID browsing into a single deduplicated family
+    assert.strictEqual(
+      CdpScout.normalizeEndpointTemplate('https://api.white.market/v2/orders/9981?include=items', 'GET'),
+      'GET:api.white.market:/v2/orders/{id}'
+    );
+    assert.strictEqual(
+      CdpScout.normalizeEndpointTemplate('https://api.white.market/v2/orders/4412', 'GET'),
+      'GET:api.white.market:/v2/orders/{id}'
+    );
+  });
+
+  test('Upgrade 18: CdpAutopilot intercepts live WebSocket CDP traffic, enforces Read-Only & Safety Governor, and confirms real IDOR', async () => {
+    // Minimal real RFC 6455 WebSocket + CDP HTTP mock endpoint in-process
+    const wsSockets = new Set<Duplex>();
+    const sentCdpMessages: Array<Record<string, unknown>> = [];
+
+    const encodeWsTextFrame = (text: string): Buffer => {
+      const payload = Buffer.from(text, 'utf-8');
+      if (payload.length < 126) {
+        return Buffer.concat([Buffer.from([0x81, payload.length]), payload]);
+      }
+      const header = Buffer.alloc(4);
+      header[0] = 0x81;
+      header[1] = 126;
+      header.writeUInt16BE(payload.length, 2);
+      return Buffer.concat([header, payload]);
+    };
+
+    const decodeWsFrames = (buf: Buffer): string[] => {
+      const results: string[] = [];
+      let offset = 0;
+      while (offset + 2 <= buf.length) {
+        const lenByte = buf[offset + 1] & 0x7f;
+        const isMasked = (buf[offset + 1] & 0x80) !== 0;
+        let headerLen = 2;
+        let payloadLen = lenByte;
+        if (lenByte === 126) {
+          if (offset + 4 > buf.length) break;
+          payloadLen = buf.readUInt16BE(offset + 2);
+          headerLen = 4;
+        }
+        const maskOffset = offset + headerLen;
+        const dataOffset = maskOffset + (isMasked ? 4 : 0);
+        if (dataOffset + payloadLen > buf.length) break;
+        const payload = Buffer.from(buf.subarray(dataOffset, dataOffset + payloadLen));
+        if (isMasked) {
+          const mask = buf.subarray(maskOffset, maskOffset + 4);
+          for (let i = 0; i < payload.length; i++) {
+            payload[i] ^= mask[i % 4];
+          }
+        }
+        if ((buf[offset] & 0x0f) === 0x01) {
+          results.push(payload.toString('utf-8'));
+        }
+        offset = dataOffset + payloadLen;
+      }
+      return results;
+    };
+
+    const cdpServer = createServer((req, res) => {
+      if (req.url === '/json/list' || req.url === '/json') {
+        const addr = cdpServer.address();
+        const p = typeof addr === 'object' && addr ? addr.port : 0;
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify([
+          {
+            id: 'TAB_VICTIM_A',
+            title: 'Victim Dashboard',
+            type: 'page',
+            url: `${BASE_URL}/dashboard`,
+            webSocketDebuggerUrl: `ws://127.0.0.1:${p}/devtools/page/TAB_VICTIM_A`,
+          },
+        ]));
+        return;
+      }
+      res.writeHead(404);
+      res.end();
+    });
+
+    cdpServer.on('upgrade', (req, socket) => {
+      const key = req.headers['sec-websocket-key'];
+      if (!key) {
+        socket.destroy();
+        return;
+      }
+      const accept = createHash('sha1')
+        .update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
+        .digest('base64');
+      socket.write(
+        'HTTP/1.1 101 Switching Protocols\r\n' +
+        'Upgrade: websocket\r\n' +
+        'Connection: Upgrade\r\n' +
+        `Sec-WebSocket-Accept: ${accept}\r\n\r\n`
+      );
+      wsSockets.add(socket);
+      socket.on('data', (chunk: Buffer) => {
+        for (const msgStr of decodeWsFrames(chunk)) {
+          try {
+            const msg = JSON.parse(msgStr) as { id?: number; method?: string };
+            sentCdpMessages.push(msg);
+            if (msg.id) {
+              const result = msg.method === 'Network.getCookies'
+                ? { cookies: [{ name: 'app_session', value: 'victim_sess_aaa' }] }
+                : {};
+              socket.write(encodeWsTextFrame(JSON.stringify({ id: msg.id, result })));
+            }
+          } catch {}
+        }
+      });
+      socket.on('close', () => wsSockets.delete(socket));
+    });
+
+    await new Promise<void>(resolve => cdpServer.listen(0, '127.0.0.1', () => resolve()));
+    const cdpAddr = cdpServer.address();
+    const cdpPort = typeof cdpAddr === 'object' && cdpAddr ? cdpAddr.port : 0;
+    const cdpHttpUrl = `http://127.0.0.1:${cdpPort}`;
+
+    const autopilot = new CdpAutopilot({
+      ledgerBaseDir: 'targets_test_temp_cdp',
+      cadenceDelayMs: { min: 0, max: 0 },
+    });
+
+    try {
+      // Set Attacker session (User B) using Cookie + XSRF cURL
+      autopilot.setAttackerFromCurl(
+        `curl '${BASE_URL}/api/v2/address-book/addr_attacker_88' -H 'x-xsrf-token: attacker_xsrf_222' -b 'app_session=attacker_sess_bbb; XSRF-TOKEN=attacker_xsrf_222'`
+      );
+
+      const targets = await CdpScout.listTargets(cdpHttpUrl);
+      assert.strictEqual(targets.length, 1);
+      assert.strictEqual(targets[0].id, 'TAB_VICTIM_A');
+
+      await autopilot.connect({
+        cdpHttpUrl,
+        targetId: targets[0].id,
+        allowedHosts: ['127.0.0.1'],
+        programName: 'cdp_autopilot_test',
+        readOnlySafeMode: true,
+      });
+
+      const emitCdpEvent = (method: string, params: Record<string, unknown>) => {
+        const frame = encodeWsTextFrame(JSON.stringify({ method, params }));
+        for (const sock of wsSockets) {
+          sock.write(frame);
+        }
+      };
+
+      // Event 1: Logout endpoint (MUST be blocked by Safety Governor)
+      emitCdpEvent('Network.requestWillBeSent', {
+        requestId: 'req-logout',
+        type: 'XHR',
+        request: { url: `${BASE_URL}/api/v2/logout`, method: 'GET', headers: { Accept: 'application/json' } },
+      });
+      emitCdpEvent('Network.requestWillBeSentExtraInfo', {
+        requestId: 'req-logout',
+        headers: { cookie: 'app_session=victim_sess_aaa' },
+      });
+      emitCdpEvent('Network.responseReceived', {
+        requestId: 'req-logout',
+        type: 'XHR',
+        response: { url: `${BASE_URL}/api/v2/logout`, status: 200, mimeType: 'application/json' },
+      });
+
+      // Event 2: Public currencies endpoint (MUST be refuted as public/non-IDOR)
+      emitCdpEvent('Network.requestWillBeSent', {
+        requestId: 'req-pub',
+        type: 'Fetch',
+        request: { url: `${BASE_URL}/api/v2/currencies`, method: 'GET', headers: { Accept: 'application/json' } },
+      });
+      emitCdpEvent('Network.requestWillBeSentExtraInfo', {
+        requestId: 'req-pub',
+        headers: { cookie: 'app_session=victim_sess_aaa' },
+      });
+      emitCdpEvent('Network.responseReceived', {
+        requestId: 'req-pub',
+        type: 'Fetch',
+        response: { url: `${BASE_URL}/api/v2/currencies`, status: 200, mimeType: 'application/json' },
+      });
+
+      // Event 3: Mutating POST in readOnlySafeMode (MUST be captured but NOT auto-fired)
+      emitCdpEvent('Network.requestWillBeSent', {
+        requestId: 'req-post',
+        type: 'XHR',
+        request: { url: `${BASE_URL}/api/v2/orders/create`, method: 'POST', headers: { 'Content-Type': 'application/json' }, postData: '{"item":1}' },
+      });
+      emitCdpEvent('Network.requestWillBeSentExtraInfo', {
+        requestId: 'req-post',
+        headers: { cookie: 'app_session=victim_sess_aaa' },
+      });
+      emitCdpEvent('Network.responseReceived', {
+        requestId: 'req-post',
+        type: 'XHR',
+        response: { url: `${BASE_URL}/api/v2/orders/create`, status: 201, mimeType: 'application/json' },
+      });
+
+      // Event 4: Vulnerable Cookie+XSRF address-book endpoint (MUST be auto-tested and CONFIRMED!)
+      emitCdpEvent('Network.requestWillBeSent', {
+        requestId: 'req-idor',
+        type: 'XHR',
+        request: {
+          url: `${BASE_URL}/api/v2/address-book/addr_victim_77`,
+          method: 'GET',
+          headers: { Accept: 'application/json', 'x-xsrf-token': 'victim_xsrf_111' },
+        },
+      });
+      emitCdpEvent('Network.requestWillBeSentExtraInfo', {
+        requestId: 'req-idor',
+        headers: { cookie: 'app_session=victim_sess_aaa; XSRF-TOKEN=victim_xsrf_111' },
+      });
+      emitCdpEvent('Network.responseReceived', {
+        requestId: 'req-idor',
+        type: 'XHR',
+        response: { url: `${BASE_URL}/api/v2/address-book/addr_victim_77`, status: 200, mimeType: 'application/json' },
+      });
+
+      // Wait until sequential queue processes all 4 events
+      const deadline = Date.now() + 3000;
+      while (Date.now() < deadline) {
+        const st = autopilot.getStatus();
+        if (st.capturedEndpoints.length >= 4 && st.queuePending === 0 && !st.isProcessing) {
+          break;
+        }
+        await new Promise(r => setTimeout(r, 25));
+      }
+
+      const status = autopilot.getStatus();
+      assert.strictEqual(status.connected, true);
+      assert.ok(sentCdpMessages.some(m => m.method === 'Network.enable'));
+      assert.strictEqual(status.capturedEndpoints.length, 4);
+
+      const logoutEp = status.capturedEndpoints.find(e => e.path.includes('/logout'));
+      assert.strictEqual(logoutEp?.auditStatus, 'BLOCKED_BY_GOVERNOR');
+
+      const pubEp = status.capturedEndpoints.find(e => e.path.includes('/currencies'));
+      assert.strictEqual(pubEp?.auditStatus, 'REFUTED_SAFE');
+
+      const postEp = status.capturedEndpoints.find(e => e.path.includes('/orders/create'));
+      assert.strictEqual(postEp?.auditStatus, 'SKIPPED_MUTATING');
+
+      const idorEp = status.capturedEndpoints.find(e => e.path.includes('/address-book/'));
+      assert.strictEqual(idorEp?.auditStatus, 'CONFIRMED_VULNERABILITY');
+      assert.strictEqual(status.receipts.length, 1);
+      assert.ok(status.receipts[0].rawCurl.includes('/api/v2/address-book/addr_victim_77'));
+    } finally {
+      await autopilot.disconnect();
+      for (const s of wsSockets) s.destroy();
+      await new Promise<void>(resolve => cdpServer.close(() => resolve()));
+      const fs = await import('fs');
+      try { fs.rmSync('targets_test_temp_cdp', { recursive: true, force: true }); } catch {}
+    }
+  });
+
+  test('Upgrade 19: Cockpit Server exposes /api/autopilot/status and /api/autopilot/attacker endpoints', async () => {
+    const { handleRequest } = await import('./server.js');
+    const cockpitServer = createServer(handleRequest);
+    await new Promise<void>(resolve => cockpitServer.listen(0, '127.0.0.1', () => resolve()));
+    const addr = cockpitServer.address();
+    const cockpitPort = typeof addr === 'object' && addr ? addr.port : 39992;
+    const cockpitOrigin = `http://127.0.0.1:${cockpitPort}`;
+
+    try {
+      const statusRes = await fetch(`${cockpitOrigin}/api/autopilot/status`);
+      assert.strictEqual(statusRes.status, 200);
+      assert.strictEqual(statusRes.headers.get('access-control-allow-private-network'), 'true');
+      const st = await statusRes.json() as { connected: boolean; hasAttackerSession: boolean };
+      assert.strictEqual(typeof st.connected, 'boolean');
+
+      const setAttackerRes = await fetch(`${cockpitOrigin}/api/autopilot/attacker`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          attackerCurl: `curl '${cockpitOrigin}/api/demo/workspaces/rec_octane_881' -H 'Authorization: Bearer ashborn_hunter_token_session_b'`,
+        }),
+      });
+      assert.strictEqual(setAttackerRes.status, 200);
+      const attData = await setAttackerRes.json() as { hasAttackerSession: boolean; attackerAuthSummary: string };
+      assert.strictEqual(attData.hasAttackerSession, true);
+      assert.match(attData.attackerAuthSummary, /Authorization Header/i);
+    } finally {
+      await new Promise<void>(resolve => cockpitServer.close(() => resolve()));
+    }
   });
 });

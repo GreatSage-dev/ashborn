@@ -628,7 +628,7 @@
     /* Quick Action Cards (SETO-style) */
     .quick-actions {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
       gap: 14px;
       padding: 0 32px 24px;
     }
@@ -1301,6 +1301,13 @@
             <h4>10-Scenario Benchmark</h4>
             <p>Prove 100% precision &amp; 0 false alarms against real CVEs.</p>
           </div>
+          <div class="glass-card quick-action-card" onclick="openAutopilot()">
+            <div class="qa-icon" style="background: rgba(188, 124, 51, 0.14); color: var(--accent);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+            </div>
+            <h4>Chrome Auto-Pilot (CDP)</h4>
+            <p>Browse normally while Ashborn intercepts &amp; tests APIs live.</p>
+          </div>
           <div class="glass-card quick-action-card" onclick="openCurlIngress()">
             <div class="qa-icon" style="background: rgba(46, 125, 50, 0.10); color: var(--success);">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-6-6-6"/><path d="M12 19h8"/></svg>
@@ -1366,6 +1373,90 @@
           </div>
         </div>
 
+        <!-- Chrome DevTools Auto-Pilot Panel -->
+        <div class="glass-card config-panel" id="autopilot-section">
+          <div class="config-panel-header">
+            <h3>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+              Live Chrome Auto-Pilot (CDP)
+            </h3>
+            <span class="brand-pill" id="autopilot-pill">disconnected</span>
+          </div>
+
+          <div id="autopilot-error-box" style="display: none; margin-bottom: 16px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--danger-soft); color: var(--danger); font-family: var(--font-mono); font-size: 12px;"></div>
+
+          <div class="config-layout">
+            <div>
+              <div class="form-group">
+                <label class="form-label">1. Target URL to Open in Debug Chrome</label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="text" id="autopilot-launch-url" class="form-input" value="https://white.market" placeholder="https://target.com">
+                  <button type="button" class="btn btn-outline" onclick="launchAutopilotChrome()" style="padding: 8px 16px; font-size: 12.5px;">Launch Chrome</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">2. Select Victim Tab (Account A — Monitor Live)</label>
+                <div style="display: flex; gap: 8px;">
+                  <select id="autopilot-victim-tab" class="form-select">
+                    <option value="">Click Refresh Tabs after opening Chrome...</option>
+                  </select>
+                  <button type="button" class="btn btn-outline" onclick="refreshAutopilotTabs()" style="padding: 8px 14px; font-size: 12.5px;">Refresh</button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Allowed Scope Hosts (comma-separated, blank = auto-detect)</label>
+                <input type="text" id="autopilot-scope-hosts" class="form-input" placeholder="e.g. white.market, *.white.market">
+              </div>
+
+              <div class="switch-row">
+                <input type="checkbox" id="autopilot-readonly-toggle" checked onchange="toggleAutopilotReadOnly()">
+                <div class="switch-text">
+                  <div class="switch-label">Read-Only Safe Mode (GET only)</div>
+                  <div class="switch-sub">Pauses POST/PUT mutations until you click Strike</div>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 10px;">
+                <button type="button" id="autopilot-connect-btn" class="btn-launch" onclick="connectAutopilot()" style="flex: 1;">
+                  Start Auto-Pilot
+                </button>
+                <button type="button" id="autopilot-disconnect-btn" class="btn btn-outline" onclick="disconnectAutopilot()" style="display: none;">
+                  Stop
+                </button>
+                <button type="button" class="btn btn-ghost" onclick="clearAutopilotFeed()">
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div class="form-group">
+                <label class="form-label">3. Account B (Attacker Session) — Incognito Tab or cURL</label>
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                  <select id="autopilot-attacker-tab" class="form-select">
+                    <option value="">Select Incognito Account B tab...</option>
+                  </select>
+                  <button type="button" class="btn btn-outline" onclick="captureAttackerFromSelectedTab()" style="padding: 8px 14px; font-size: 12.5px;">Grab Tab B</button>
+                </div>
+                <textarea id="autopilot-attacker-curl" class="form-textarea" style="height: 84px; font-size: 11px;" placeholder="Or paste 1 cURL from Account B once (supports -b cookies, X-XSRF-TOKEN, Bearer)..."></textarea>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                  <span id="autopilot-attacker-badge" style="font-family: var(--font-mono); font-size: 11px; color: var(--muted);">Attacker: Not configured</span>
+                  <button type="button" class="btn btn-outline" onclick="saveAttackerCurl()" style="padding: 6px 14px; font-size: 12px;">Save Attacker cURL</button>
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Live Auto-Pilot Stream (<span id="autopilot-captured-count">0</span> API calls captured)</label>
+                <div id="autopilot-feed" style="max-height: 220px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); background: rgba(0,0,0,0.02); padding: 8px; font-family: var(--font-mono); font-size: 11px;">
+                  <div style="color: var(--muted); padding: 12px; text-align: center;">Click <strong>Launch Chrome</strong>, log into Account A &amp; Account B (Incognito), then browse normally. Ashborn intercepts &amp; audits every endpoint automatically.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Configuration Panel -->
         <div class="glass-card config-panel" id="config-section">
           <div class="config-panel-header">
@@ -1401,19 +1492,22 @@
 
                 <!-- Curl Ingress Fields (Lostsec Style) -->
                 <div id="curl-ingress-container" style="display: none;">
+                  <div style="margin-bottom: 14px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--accent-soft); border: 1px solid rgba(188, 124, 51, 0.18); font-size: 11.5px; color: var(--ink-secondary); line-height: 1.5;">
+                    <strong style="color: var(--ink);">Dual-Session cURL Mode:</strong> Paste <code>Copy as cURL (bash)</code> or <code>Copy as cURL (cmd)</code> from Chrome, Edge, Firefox, or Burp. Supports <code>--url</code>, <code>-b</code> cookies, <code>X-XSRF-TOKEN</code>, and <code>Bearer</code> tokens. Log into Account B in an Incognito window so sessions are distinct.
+                  </div>
                   <div class="form-group">
                     <label class="form-label">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                       User A (Victim) Browser cURL
                     </label>
-                    <textarea id="curl-user-a" class="form-textarea" style="height: 110px; font-size: 11px; font-family: var(--font-mono);" placeholder="Paste User A 'Copy as cURL' from Chrome / Burp...">curl 'http://127.0.0.1:3000/api/demo/workspaces/rec_octane_881' -H 'Authorization: Bearer token_victim_user_a'</textarea>
+                    <textarea id="curl-user-a" class="form-textarea" style="height: 110px; font-size: 11px; font-family: var(--font-mono);" placeholder="Paste User A 'Copy as cURL' (resource owned by Account A)...">curl 'http://127.0.0.1:3000/api/demo/workspaces/rec_octane_881' -H 'Authorization: Bearer token_victim_user_a'</textarea>
                   </div>
                   <div class="form-group">
                     <label class="form-label">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                       User B (Attacker) Browser cURL
                     </label>
-                    <textarea id="curl-user-b" class="form-textarea" style="height: 110px; font-size: 11px; font-family: var(--font-mono);" placeholder="Paste User B 'Copy as cURL' from Chrome / Burp...">curl 'http://127.0.0.1:3000/api/demo/workspaces/rec_octane_881' -H 'Authorization: Bearer ashborn_hunter_token_session_b'</textarea>
+                    <textarea id="curl-user-b" class="form-textarea" style="height: 110px; font-size: 11px; font-family: var(--font-mono);" placeholder="Paste User B 'Copy as cURL' (from Incognito / Account B session)...">curl 'http://127.0.0.1:3000/api/demo/workspaces/rec_octane_881' -H 'Authorization: Bearer ashborn_hunter_token_session_b'</textarea>
                   </div>
                 </div>
 
@@ -1521,6 +1615,7 @@
         if (curlA) curlA.value = curlA.value.replace(/http:\/\/127\.0\.0\.1:3000/g, window.location.origin);
         if (curlB) curlB.value = curlB.value.replace(/http:\/\/127\.0\.0\.1:3000/g, window.location.origin);
       }
+      pollAutopilotStatus();
     });
 
     function switchView(viewName) {
@@ -1587,6 +1682,295 @@
       document.getElementById('ingress-mode').value = 'curl';
       handleModeChange();
       document.getElementById('config-section').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function openAutopilot() {
+      switchView('cockpit');
+      document.getElementById('autopilot-section').scrollIntoView({ behavior: 'smooth' });
+      refreshAutopilotTabs();
+      pollAutopilotStatus();
+    }
+
+    const IS_LOCAL_ORIGIN =
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname === 'localhost' ||
+      window.location.protocol === 'file:';
+    const AUTOPILOT_API_BASE = IS_LOCAL_ORIGIN ? '' : 'http://127.0.0.1:3000';
+
+    let autopilotPollTimer = null;
+    let lastRenderedAutopilotReceiptCount = 0;
+
+    function autopilotFetch(path, options) {
+      return fetch(`${AUTOPILOT_API_BASE}${path}`, options);
+    }
+
+    function showAutopilotError(msg) {
+      const box = document.getElementById('autopilot-error-box');
+      if (!msg) {
+        box.style.display = 'none';
+        box.textContent = '';
+      } else {
+        box.style.display = 'block';
+        box.textContent = msg;
+      }
+    }
+
+    async function launchAutopilotChrome() {
+      showAutopilotError('');
+      const targetUrl = document.getElementById('autopilot-launch-url').value.trim() || 'https://white.market';
+      try {
+        const res = await autopilotFetch('/api/autopilot/launch-chrome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetUrl })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Failed to launch Chrome');
+        await refreshAutopilotTabs();
+      } catch (err) {
+        const hint = !IS_LOCAL_ORIGIN ? ' (Make sure Ashborn local bridge is running: npm start)' : '';
+        showAutopilotError((err.message || String(err)) + hint);
+      }
+    }
+
+    async function refreshAutopilotTabs() {
+      try {
+        const res = await autopilotFetch('/api/autopilot/targets');
+        const data = await res.json();
+        const targets = data.targets || [];
+        const victimSelect = document.getElementById('autopilot-victim-tab');
+        const attackerSelect = document.getElementById('autopilot-attacker-tab');
+
+        const prevVictim = victimSelect.value;
+        const prevAttacker = attackerSelect.value;
+
+        if (targets.length === 0) {
+          victimSelect.innerHTML = '<option value="">No debug Chrome tabs open on port 9222</option>';
+          attackerSelect.innerHTML = '<option value="">No debug Chrome tabs open on port 9222</option>';
+          return;
+        }
+
+        const optionsHtml = targets.map(t =>
+          `<option value="${escapeHtml(t.id)}">${escapeHtml((t.title || 'Tab').slice(0, 40))} — ${escapeHtml(t.url.slice(0, 45))}</option>`
+        ).join('');
+
+        victimSelect.innerHTML = optionsHtml;
+        attackerSelect.innerHTML = '<option value="">Select Incognito Account B tab...</option>' + optionsHtml;
+
+        if (prevVictim && targets.some(t => t.id === prevVictim)) victimSelect.value = prevVictim;
+        if (prevAttacker && targets.some(t => t.id === prevAttacker)) attackerSelect.value = prevAttacker;
+      } catch (err) {
+        const hint = !IS_LOCAL_ORIGIN ? ' (Run "npm start" on your PC to enable Chrome Auto-Pilot from Vercel)' : '';
+        showAutopilotError((err.message || String(err)) + hint);
+      }
+    }
+
+    async function saveAttackerCurl() {
+      showAutopilotError('');
+      const attackerCurl = document.getElementById('autopilot-attacker-curl').value;
+      if (!attackerCurl.trim()) {
+        showAutopilotError('Paste a cURL from Account B first.');
+        return;
+      }
+      try {
+        const res = await autopilotFetch('/api/autopilot/attacker', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ attackerCurl })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Failed to save Account B session');
+        renderAutopilotStatus(data.status);
+      } catch (err) {
+        showAutopilotError(err.message || String(err));
+      }
+    }
+
+    async function captureAttackerFromSelectedTab() {
+      showAutopilotError('');
+      const targetId = document.getElementById('autopilot-attacker-tab').value;
+      if (!targetId) {
+        showAutopilotError('Select the Incognito Account B tab first.');
+        return;
+      }
+      try {
+        const res = await autopilotFetch('/api/autopilot/attacker', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetId })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Failed to grab cookies from tab');
+        renderAutopilotStatus(data.status);
+      } catch (err) {
+        showAutopilotError(err.message || String(err));
+      }
+    }
+
+    async function connectAutopilot() {
+      showAutopilotError('');
+      const targetId = document.getElementById('autopilot-victim-tab').value;
+      const allowedHosts = document.getElementById('autopilot-scope-hosts').value;
+      const readOnlySafeMode = document.getElementById('autopilot-readonly-toggle').checked;
+
+      try {
+        const res = await autopilotFetch('/api/autopilot/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetId, allowedHosts, readOnlySafeMode })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Failed to attach to Chrome tab');
+        renderAutopilotStatus(data);
+        startAutopilotPolling();
+      } catch (err) {
+        showAutopilotError(err.message || String(err));
+      }
+    }
+
+    async function disconnectAutopilot() {
+      try {
+        const res = await autopilotFetch('/api/autopilot/disconnect', { method: 'POST' });
+        const data = await res.json();
+        renderAutopilotStatus(data);
+        if (autopilotPollTimer) {
+          clearInterval(autopilotPollTimer);
+          autopilotPollTimer = null;
+        }
+      } catch {}
+    }
+
+    async function clearAutopilotFeed() {
+      try {
+        const res = await autopilotFetch('/api/autopilot/clear', { method: 'POST' });
+        const data = await res.json();
+        lastRenderedAutopilotReceiptCount = 0;
+        renderAutopilotStatus(data);
+      } catch {}
+    }
+
+    async function toggleAutopilotReadOnly() {
+      const readOnlySafeMode = document.getElementById('autopilot-readonly-toggle').checked;
+      try {
+        const res = await autopilotFetch('/api/autopilot/mode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ readOnlySafeMode })
+        });
+        const data = await res.json();
+        renderAutopilotStatus(data);
+      } catch {}
+    }
+
+    async function strikeCapturedEndpoint(capturedId) {
+      showAutopilotError('');
+      try {
+        const res = await autopilotFetch('/api/autopilot/strike', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ capturedId, allowMutations: true })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Strike failed');
+        renderAutopilotStatus(data.status);
+      } catch (err) {
+        showAutopilotError(err.message || String(err));
+      }
+    }
+
+    function startAutopilotPolling() {
+      if (autopilotPollTimer) clearInterval(autopilotPollTimer);
+      autopilotPollTimer = setInterval(pollAutopilotStatus, 1200);
+    }
+
+    async function pollAutopilotStatus() {
+      try {
+        const res = await autopilotFetch('/api/autopilot/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        renderAutopilotStatus(data);
+        if (data.connected && !autopilotPollTimer) {
+          startAutopilotPolling();
+        }
+      } catch {
+        if (!IS_LOCAL_ORIGIN) {
+          const pill = document.getElementById('autopilot-pill');
+          if (pill) {
+            pill.textContent = 'local bridge offline';
+            pill.style.background = 'var(--accent-soft)';
+            pill.style.color = 'var(--accent)';
+          }
+        }
+      }
+    }
+
+    function renderAutopilotStatus(st) {
+      if (!st) return;
+      const pill = document.getElementById('autopilot-pill');
+      const connectBtn = document.getElementById('autopilot-connect-btn');
+      const disconnectBtn = document.getElementById('autopilot-disconnect-btn');
+      const attackerBadge = document.getElementById('autopilot-attacker-badge');
+      const countEl = document.getElementById('autopilot-captured-count');
+      const feedEl = document.getElementById('autopilot-feed');
+
+      if (st.connected) {
+        pill.textContent = 'LIVE CDP ACTIVE';
+        pill.style.background = 'var(--success-soft)';
+        pill.style.color = 'var(--success)';
+        connectBtn.style.display = 'none';
+        disconnectBtn.style.display = 'inline-flex';
+      } else {
+        pill.textContent = 'disconnected';
+        pill.style.background = 'var(--accent-soft)';
+        pill.style.color = 'var(--accent)';
+        connectBtn.style.display = 'inline-flex';
+        disconnectBtn.style.display = 'none';
+      }
+
+      attackerBadge.textContent = st.hasAttackerSession
+        ? `Attacker Locked: ${st.attackerAuthSummary}`
+        : 'Attacker: Not configured';
+      attackerBadge.style.color = st.hasAttackerSession ? 'var(--success)' : 'var(--muted)';
+
+      const items = st.capturedEndpoints || [];
+      countEl.textContent = String(items.length);
+
+      if (items.length > 0) {
+        document.getElementById('stat-scanned').innerText = String(items.length);
+        document.getElementById('stat-high-val').innerText = String(items.filter(i => i.isHighValue).length);
+        document.getElementById('stat-blocked').innerText = String(items.filter(i => i.auditStatus === 'BLOCKED_BY_GOVERNOR').length);
+        document.getElementById('stat-confirmed').innerText = String((st.receipts || []).length);
+
+        const badgeColor = status => {
+          if (status === 'CONFIRMED_VULNERABILITY') return 'background: var(--danger-soft); color: var(--danger);';
+          if (status === 'BLOCKED_BY_GOVERNOR') return 'background: var(--accent-soft); color: var(--accent);';
+          if (status === 'REFUTED_SAFE') return 'background: var(--success-soft); color: var(--success);';
+          return 'background: rgba(0,0,0,0.06); color: var(--muted);';
+        };
+
+        feedEl.innerHTML = items.slice(0, 35).map(item => `
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border-bottom: 1px solid var(--line);">
+            <div style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(item.auditReason || item.url)}">
+              <strong style="color: var(--ink);">${escapeHtml(item.method)}</strong>
+              <span>${escapeHtml(item.path)}</span>
+              ${item.extractedResourceId ? `<span style="color: var(--accent);">[id:${escapeHtml(item.extractedResourceId)}]</span>` : ''}
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+              <span style="padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 600; ${badgeColor(item.auditStatus)}">${escapeHtml(item.auditStatus)}</span>
+              ${(item.auditStatus === 'SKIPPED_MUTATING' || item.auditStatus === 'SKIPPED_NO_ATTACKER')
+                ? `<button type="button" onclick="strikeCapturedEndpoint('${escapeHtml(item.id)}')" style="border: 1px solid var(--line-strong); background: #fff; border-radius: 6px; padding: 2px 7px; font-size: 10px; cursor: pointer;">Strike</button>`
+                : ''}
+            </div>
+          </div>
+        `).join('');
+      } else {
+        feedEl.innerHTML = '<div style="color: var(--muted); padding: 12px; text-align: center;">Click <strong>Launch Chrome</strong>, log into Account A &amp; Account B (Incognito), then browse normally. Ashborn intercepts &amp; audits every endpoint automatically.</div>';
+      }
+
+      if ((st.reports || []).length > lastRenderedAutopilotReceiptCount) {
+        lastRenderedAutopilotReceiptCount = st.reports.length;
+        renderReceipts(st.reports, null);
+      }
     }
 
     async function handleFormSubmit(event) {
@@ -1732,15 +2116,18 @@
         }
 
         const data = await response.json();
+        if (!response.ok || data.error) {
+          throw new Error(data.error || `Audit failed with HTTP ${response.status}`);
+        }
 
         document.getElementById('stat-scanned').innerText = data.endpointsScanned || 0;
         document.getElementById('stat-high-val').innerText = data.highValueTargets || 0;
         document.getElementById('stat-blocked').innerText = data.blockedByGovernor || 0;
         document.getElementById('stat-confirmed').innerText = (data.confirmedReceipts || []).length;
 
-        renderReceipts(data.reports || []);
+        renderReceipts(data.reports || [], data.ingressSummary || null);
       } catch (err) {
-        container.innerHTML = `<div class="glass-card empty-state" style="color: var(--danger);"><div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><h4>Execution Failed</h4><p>${err.message}</p></div>`;
+        container.innerHTML = `<div class="glass-card empty-state" style="color: var(--danger);"><div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div><h4>Execution Refused</h4><p>${escapeHtml(err.message || String(err))}</p></div>`;
       } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Release the Shadows';
@@ -1748,21 +2135,28 @@
       }
     }
 
-    function renderReceipts(reports) {
+    function renderReceipts(reports, ingressSummary) {
       const container = document.getElementById('receipts-container');
+      const summaryHtml = ingressSummary ? `
+        <div class="glass-card" style="padding: 14px 18px; margin-bottom: 14px; font-family: var(--font-mono); font-size: 11.5px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between;">
+          <span><strong>Target:</strong> ${escapeHtml(ingressSummary.method)} ${escapeHtml(ingressSummary.targetUrl)}</span>
+          <span><strong>User A Auth:</strong> ${escapeHtml(ingressSummary.victimAuthMode)} · <strong>User B Auth:</strong> ${escapeHtml(ingressSummary.attackerAuthMode)}</span>
+        </div>
+      ` : '';
+
       if (reports.length === 0) {
-        container.innerHTML = `
+        container.innerHTML = summaryHtml + `
           <div class="glass-card empty-state">
             <div class="empty-state-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             </div>
             <h4>All Clear — 0 False Alarms</h4>
-            <p>All scanned endpoints safely refused unauthorized access or were blocked by the Safety Governor.</p>
+            <p>All scanned endpoints safely refused unauthorized cross-tenant access, returned public/empty data, or were blocked by the Safety Governor.</p>
           </div>`;
         return;
       }
 
-      container.innerHTML = reports.map((rep, idx) => `
+      container.innerHTML = summaryHtml + reports.map((rep, idx) => `
         <div class="glass-card receipt-card">
           <div class="receipt-header">
             <span class="badge-sev">${rep.severity} · ${rep.vulnerabilityClass.split(':')[0]}</span>

@@ -1974,7 +1974,7 @@
                   <label class="form-label">LLM Provider (Free Options from GitHub Resource)</label>
                   <select id="copilot-provider-select" class="form-select" onchange="onCopilotProviderChange()">
                     <option value="builtin">Built-in Tactical Engine (No API Key Required)</option>
-                    <option value="groq">Groq Free (Llama 3.3 70B - Ultra Fast)</option>
+                    <option value="groq" selected>Groq Free (GPT-OSS 120B - Ultra Fast)</option>
                     <option value="gemini">Google AI Studio (Gemini 1.5/2.0 Flash - Free)</option>
                     <option value="openrouter">OpenRouter Free Tier (:free models)</option>
                     <option value="github">GitHub Models (Free with GitHub Token)</option>
@@ -2051,7 +2051,7 @@
         <label style="font-weight: 500; display: block; margin-bottom: 4px; color: var(--ink);">Provider (Free via GitHub Resource)</label>
         <select id="drawer-provider-select" class="form-select" onchange="onDrawerProviderChange()" style="padding: 6px 10px; font-size: 12px;">
           <option value="builtin">Built-in Tactical (No Key Needed)</option>
-          <option value="groq">Groq Free (Llama 3.3 70B)</option>
+          <option value="groq" selected>Groq Free (GPT-OSS 120B)</option>
           <option value="gemini">Google AI Studio (Gemini Flash)</option>
           <option value="openrouter">OpenRouter Free Tier</option>
           <option value="github">GitHub Models</option>
@@ -2884,7 +2884,7 @@
     let copilotChatHistory = [];
     const COPILOT_PRESET_MODELS = {
       builtin: { name: 'Built-in Tactical', model: 'ashborn-tactical-v1', doc: '' },
-      groq: { name: 'Groq Free (Llama 3.3)', model: 'llama-3.3-70b-versatile', doc: 'https://console.groq.com/keys' },
+      groq: { name: 'Groq Free (GPT-OSS 120B)', model: 'openai/gpt-oss-120b', doc: 'https://console.groq.com/keys' },
       gemini: { name: 'Google AI Studio (Gemini)', model: 'gemini-1.5-flash', doc: 'https://aistudio.google.com/app/apikey' },
       openrouter: { name: 'OpenRouter Free', model: 'meta-llama/llama-3.3-70b-instruct:free', doc: 'https://openrouter.ai/keys' },
       github: { name: 'GitHub Models', model: 'gpt-4o-mini', doc: 'https://github.com/marketplace/models' },

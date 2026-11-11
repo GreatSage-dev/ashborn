@@ -1414,7 +1414,7 @@ describe('ASHBORN AUTONOMOUS HUNTER - SYSTEM TEST SUITE', () => {
     assert.ok(COPILOT_PROVIDER_PRESETS.groq);
     assert.ok(COPILOT_PROVIDER_PRESETS.gemini);
     assert.ok(COPILOT_PROVIDER_PRESETS.openrouter);
-    assert.strictEqual(COPILOT_PROVIDER_PRESETS.groq.defaultModel, 'llama-3.3-70b-versatile');
+    assert.strictEqual(COPILOT_PROVIDER_PRESETS.groq.defaultModel, 'openai/gpt-oss-120b');
   });
 
   test('Upgrade 21: Cockpit Server exposes /api/copilot/presets and /api/copilot/chat', async () => {

@@ -40,7 +40,7 @@ export const COPILOT_PROVIDER_PRESETS: Record<CopilotProvider, { name: string; e
   groq: {
     name: 'Groq (Free & Fast)',
     endpoint: 'https://api.groq.com/openai/v1/chat/completions',
-    defaultModel: 'llama-3.3-70b-versatile',
+    defaultModel: 'openai/gpt-oss-120b',
     docUrl: 'https://console.groq.com/keys',
   },
   openrouter: {

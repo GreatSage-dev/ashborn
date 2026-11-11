@@ -1,7 +1,7 @@
 import { AutopilotStatusSnapshot, CapturedTrafficItem } from '../scout/cdp_scout.js';
 import { AshbornReceipt, FormattedReport } from '../types.js';
 
-export type CopilotProvider = 'groq' | 'openrouter' | 'gemini' | 'github' | 'local' | 'builtin';
+export type CopilotProvider = 'groq' | 'openrouter' | 'gemini' | 'github' | 'local' | 'freellmapi' | 'builtin';
 
 export interface CopilotMessage {
   role: 'user' | 'assistant' | 'system';
@@ -67,6 +67,12 @@ export const COPILOT_PROVIDER_PRESETS: Record<CopilotProvider, { name: string; e
     defaultModel: 'local-model',
     docUrl: 'https://lmstudio.ai',
   },
+  freellmapi: {
+    name: 'FreeLLMAPI (7.4B Token Local Router)',
+    endpoint: 'http://127.0.0.1:8000/v1/chat/completions',
+    defaultModel: 'groq/llama-3.3-70b-versatile',
+    docUrl: 'https://github.com/tashfeenahmed/freellmapi',
+  },
   builtin: {
     name: 'Built-in Tactical Engine (No Key Needed)',
     endpoint: 'internal',
@@ -131,7 +137,7 @@ Keep answers concise, actionable, and formatted in clean Markdown. Never give fl
     const apiKey = (config.apiKey && config.apiKey.trim()) || (envKey && envKey.trim()) || '';
 
     // If provider is builtin or no API key is provided for cloud providers, use tactical fallback
-    if (provider === 'builtin' || (!apiKey && provider !== 'local')) {
+    if (provider === 'builtin' || (!apiKey && provider !== 'local' && provider !== 'freellmapi')) {
       const fallback = this.executeTacticalFallback(lastUserMessage, context);
       if (provider !== 'builtin') {
         const preset = COPILOT_PROVIDER_PRESETS[provider];

@@ -2016,11 +2016,16 @@
               </div>
             </div>
 
+            <!-- Image Attachment Preview Pill -->
+            <div id="copilot-image-preview" style="display: none; align-items: center; gap: 8px; margin-bottom: 8px; padding: 4px 10px; background: rgba(0,0,0,0.04); border: 1px solid var(--line-strong); border-radius: 8px; width: fit-content;"></div>
+
             <!-- Chat Input Bar -->
-            <form id="copilot-form" onsubmit="handleCopilotSubmit(event)" style="display: flex; gap: 8px;">
-              <input type="text" id="copilot-input" class="form-input" placeholder="Give instructions or ask Co-Pilot (e.g. 'Strike endpoint cdp-1', 'Focus on orders')..." style="flex: 1;" autocomplete="off">
+            <form id="copilot-form" onsubmit="handleCopilotSubmit(event)" style="display: flex; gap: 8px; align-items: center;">
+              <button type="button" class="btn btn-outline" onclick="triggerImageUpload()" title="Attach Screenshot or Image (or press Ctrl+V to paste)" style="padding: 8px 12px; font-size: 14px; flex-shrink: 0;">📷</button>
+              <input type="text" id="copilot-input" class="form-input" placeholder="Ask Co-Pilot or attach a screenshot (Ctrl+V supported)..." style="flex: 1;" autocomplete="off">
               <button type="submit" id="copilot-send-btn" class="btn-launch" style="padding: 0 24px; font-size: 13px;">Send</button>
             </form>
+            <input type="file" id="copilot-hidden-file" accept="image/*" style="display: none;" onchange="handleImageFileSelect(event)">
           </div>
         </div>
 
@@ -2091,15 +2096,18 @@
 
       <form id="copilot-drawer-form" onsubmit="handleDrawerSubmit(event)">
         <div class="copilot-pill-input-box">
+          <!-- Drawer Image Attachment Preview Pill -->
+          <div id="drawer-image-preview" style="display: none; align-items: center; gap: 6px; margin-bottom: 6px; padding: 3px 8px; background: rgba(0,0,0,0.04); border: 1px solid var(--line-strong); border-radius: 6px; width: fit-content;"></div>
           <div class="copilot-pill-input-row">
-            <input type="text" id="copilot-drawer-input" class="copilot-pill-input" placeholder="Ask Co-Pilot or give instructions..." autocomplete="off">
+            <button type="button" class="copilot-pill-attach" onclick="triggerImageUpload()" title="Attach Screenshot or Image (or Ctrl+V)" style="background: transparent; border: none; cursor: pointer; color: var(--muted); padding: 4px 6px; font-size: 14px; display: flex; align-items: center; justify-content: center;">📷</button>
+            <input type="text" id="copilot-drawer-input" class="copilot-pill-input" placeholder="Ask Co-Pilot or paste screenshot (Ctrl+V)..." autocomplete="off">
             <button type="submit" id="copilot-drawer-send-btn" class="copilot-pill-send" title="Send message">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 14px; height: 14px;"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
             </button>
           </div>
           <div class="copilot-pill-meta">
-            <span class="copilot-model-chip" onclick="toggleDrawerConfig()" id="drawer-model-display">Built-in Tactical ▾</span>
-            <span>Enter to send</span>
+            <span class="copilot-model-chip" onclick="toggleDrawerConfig()" id="drawer-model-display">Groq Free (GPT-OSS 120B) ▾</span>
+            <span>Enter to send · Ctrl+V image</span>
           </div>
         </div>
       </form>
@@ -3032,37 +3040,119 @@
       sendCopilotMessage(promptText);
     }
 
+    let pendingCopilotImageBase64 = null;
+
+    function triggerImageUpload() {
+      const fileInput = document.getElementById('copilot-hidden-file');
+      if (fileInput) {
+        fileInput.value = '';
+        fileInput.click();
+      }
+    }
+
+    function handleImageFileSelect(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      readAndSetImage(file);
+    }
+
+    function readAndSetImage(file) {
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (PNG, JPG, WebP, etc.)');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        pendingCopilotImageBase64 = e.target.result;
+        renderImagePreviews(pendingCopilotImageBase64, file.name || 'Screenshot');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function renderImagePreviews(dataUrl, label) {
+      const previews = [
+        document.getElementById('copilot-image-preview'),
+        document.getElementById('drawer-image-preview')
+      ];
+      previews.forEach(p => {
+        if (!p) return;
+        p.style.display = 'flex';
+        p.innerHTML = `
+          <img src="${dataUrl}" style="width: 26px; height: 26px; object-fit: cover; border-radius: 4px; border: 1px solid var(--line);" />
+          <span style="font-size: 11px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font-family: var(--font-mono);">${escapeHtml(label)}</span>
+          <button type="button" onclick="clearPendingImage()" style="background: none; border: none; cursor: pointer; color: var(--danger); font-size: 14px; line-height: 1; padding: 0 4px;" title="Remove image">×</button>
+        `;
+      });
+    }
+
+    function clearPendingImage() {
+      pendingCopilotImageBase64 = null;
+      const previews = [
+        document.getElementById('copilot-image-preview'),
+        document.getElementById('drawer-image-preview')
+      ];
+      previews.forEach(p => {
+        if (!p) return;
+        p.style.display = 'none';
+        p.innerHTML = '';
+      });
+      const fileInput = document.getElementById('copilot-hidden-file');
+      if (fileInput) fileInput.value = '';
+    }
+
+    // Support direct clipboard paste (Ctrl+V / Win+Shift+S snipping)
+    window.addEventListener('paste', (e) => {
+      if (!e.clipboardData || !e.clipboardData.items) return;
+      for (const item of e.clipboardData.items) {
+        if (item.type.indexOf('image') !== -1) {
+          const blob = item.getAsFile();
+          if (blob) {
+            readAndSetImage(blob);
+            break;
+          }
+        }
+      }
+    });
+
     async function handleDrawerSubmit(event) {
       if (event && event.preventDefault) event.preventDefault();
       const input = document.getElementById('copilot-drawer-input');
-      if (!input) return;
-      const text = input.value.trim();
-      if (!text) return;
-      input.value = '';
+      const text = input ? input.value.trim() : '';
+      if (!text && !pendingCopilotImageBase64) return;
+      if (input) input.value = '';
       await sendCopilotMessage(text);
     }
 
     async function handleCopilotSubmit(event) {
       if (event && event.preventDefault) event.preventDefault();
       const input = document.getElementById('copilot-input');
-      if (!input) return;
-      const text = input.value.trim();
-      if (!text) return;
-      input.value = '';
+      const text = input ? input.value.trim() : '';
+      if (!text && !pendingCopilotImageBase64) return;
+      if (input) input.value = '';
       await sendCopilotMessage(text);
     }
 
     async function sendCopilotMessage(text) {
-      if (!text) return;
+      const attachedImage = pendingCopilotImageBase64;
+      clearPendingImage();
 
-      appendCopilotBubble('user', text);
+      if (!text && !attachedImage) return;
+
+      const displayText = text || (attachedImage ? 'Analyze this attached screenshot for vulnerability parameters, endpoints, and security findings.' : '');
+
+      appendCopilotBubble('user', displayText, null, null, attachedImage);
 
       const sendBtn = document.getElementById('copilot-send-btn');
       const drawerSendBtn = document.getElementById('copilot-drawer-send-btn');
       if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '...'; }
       if (drawerSendBtn) { drawerSendBtn.disabled = true; }
 
-      copilotChatHistory.push({ role: 'user', content: text });
+      copilotChatHistory.push({
+        role: 'user',
+        content: displayText,
+        imageUrl: attachedImage || undefined
+      });
+
       if (copilotChatHistory.length > 12) {
         copilotChatHistory = copilotChatHistory.slice(-12);
       }
@@ -3110,7 +3200,7 @@
       return html;
     }
 
-    function appendCopilotBubble(role, text, action, provider) {
+    function appendCopilotBubble(role, text, action, provider, imageUrl) {
       const feeds = [
         document.getElementById('copilot-chat-feed'),
         document.getElementById('copilot-drawer-feed')
@@ -3125,9 +3215,14 @@
 
         if (role === 'user') {
           row.style.justifyContent = 'flex-end';
+          let imgHtml = '';
+          if (imageUrl) {
+            imgHtml = `<img src="${imageUrl}" style="max-width: 240px; max-height: 160px; border-radius: 6px; margin-bottom: 8px; display: block; object-fit: contain; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.15);" />`;
+          }
           row.innerHTML = `
             <div style="background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 10px 0 10px 10px; font-size: 12.5px; line-height: 1.4; max-width: 85%;">
-              ${escapeHtml(text)}
+              ${imgHtml}
+              <div>${escapeHtml(text)}</div>
             </div>
             <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;">U</div>
           `;

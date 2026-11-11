@@ -6,6 +6,7 @@ export type CopilotProvider = 'groq' | 'openrouter' | 'gemini' | 'github' | 'loc
 export interface CopilotMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  imageUrl?: string;
 }
 
 export interface CopilotChatConfig {
@@ -153,12 +154,29 @@ Keep answers concise, actionable, and formatted in clean Markdown. Never give fl
 
     const preset = COPILOT_PROVIDER_PRESETS[provider];
     const endpointUrl = config.customEndpoint || preset.endpoint;
-    const model = config.model || preset.defaultModel;
+    let model = config.model || preset.defaultModel;
+
+    const hasImage = messages.some(m => Boolean(m.imageUrl));
+    // If Groq is active and an image is attached, auto-switch to Groq's multimodal vision model
+    if (provider === 'groq' && hasImage && !model.includes('qwen') && !model.includes('vision')) {
+      model = 'qwen/qwen3.8-27b';
+    }
 
     const systemPrompt = CopilotEngine.buildSystemPrompt(context);
-    const apiMessages = [
+    const apiMessages: Array<{ role: string; content: string | Array<Record<string, unknown>> }> = [
       { role: 'system', content: systemPrompt },
-      ...messages.slice(-10),
+      ...messages.slice(-10).map(m => {
+        if (m.imageUrl) {
+          return {
+            role: m.role,
+            content: [
+              { type: 'text', text: m.content || 'Analyze this screenshot for vulnerability parameters, endpoints, tokens, and authorization issues.' },
+              { type: 'image_url', image_url: { url: m.imageUrl } },
+            ],
+          };
+        }
+        return { role: m.role, content: m.content };
+      }),
     ];
 
     try {

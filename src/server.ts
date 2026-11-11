@@ -292,7 +292,7 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
   if (pathname === '/api/autopilot/launch-chrome' && method === 'POST') {
     try {
       const payload = await readJsonBody(req);
-      const targetUrl = typeof payload.targetUrl === 'string' && payload.targetUrl ? payload.targetUrl : 'https://white.market';
+      const targetUrl = typeof payload.targetUrl === 'string' && payload.targetUrl.trim() ? payload.targetUrl.trim() : 'about:blank';
       const port = typeof payload.port === 'number' ? payload.port : 9222;
       const launchRes = await launchDebugChrome(targetUrl, port);
       return sendJson(res, 200, launchRes);
@@ -334,7 +334,7 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
   if (pathname === '/api/autopilot/open-tab' && method === 'POST') {
     try {
       const payload = await readJsonBody(req);
-      const urlToOpen = typeof payload.url === 'string' && payload.url.trim() ? payload.url.trim() : 'https://white.market';
+      const urlToOpen = typeof payload.url === 'string' && payload.url.trim() ? payload.url.trim() : 'about:blank';
       const cdpHttpUrl = typeof payload.cdpHttpUrl === 'string' ? payload.cdpHttpUrl : 'http://127.0.0.1:9222';
       const newTabRes = await fetch(`${cdpHttpUrl}/json/new?${encodeURIComponent(urlToOpen)}`, { method: 'PUT' });
       const newTab = await newTabRes.json();
@@ -421,9 +421,12 @@ export async function handleRequest(req: IncomingMessage, res: ServerResponse): 
       const customEndpoint = typeof payload.customEndpoint === 'string' ? payload.customEndpoint.trim() : undefined;
 
       const autopilotStatus = autopilot.getStatus();
+      const targetDomain = autopilotStatus.targetUrl
+        ? (function() { try { return new URL(autopilotStatus.targetUrl).hostname; } catch { return autopilotStatus.targetUrl; } })()
+        : 'Active Target';
       const securityContext: CopilotSecurityContext = {
-        targetUrl: autopilotStatus.targetUrl || 'https://white.market',
-        allowedHosts: autopilotStatus.allowedHosts.length > 0 ? autopilotStatus.allowedHosts : ['white.market', '*.white.market'],
+        targetUrl: autopilotStatus.targetUrl || 'Active Target',
+        allowedHosts: autopilotStatus.allowedHosts.length > 0 ? autopilotStatus.allowedHosts : [targetDomain],
         readOnlySafeMode: autopilotStatus.readOnlySafeMode,
         attackerAuthSummary: autopilotStatus.attackerAuthSummary,
         capturedEndpoints: autopilotStatus.capturedEndpoints,

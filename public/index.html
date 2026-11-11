@@ -1674,7 +1674,7 @@
                 <div class="form-group">
                   <label class="form-label">1. Target URL to Open in Debug Chrome</label>
                   <div style="display: flex; gap: 8px;">
-                    <input type="text" id="autopilot-launch-url" class="form-input" value="https://white.market" placeholder="https://target.com">
+                    <input type="text" id="autopilot-launch-url" class="form-input" placeholder="https://your-target.com" onchange="saveTargetSettings()">
                     <button type="button" id="autopilot-launch-btn" class="btn btn-outline" onclick="launchAutopilotChrome()" style="padding: 8px 16px; font-size: 12.5px;">Launch Chrome</button>
                   </div>
                 </div>
@@ -1691,7 +1691,7 @@
 
                 <div class="form-group">
                   <label class="form-label">Allowed Scope Hosts (comma-separated, blank = auto-detect)</label>
-                  <input type="text" id="autopilot-scope-hosts" class="form-input" placeholder="e.g. white.market, *.white.market">
+                  <input type="text" id="autopilot-scope-hosts" class="form-input" placeholder="e.g. target.com, *.target.com (leave blank to auto-detect)">
                 </div>
 
                 <div class="switch-row">
@@ -1997,10 +1997,10 @@
 
             <!-- Quick Command Chips -->
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;">
-              <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('What did you find on white.market so far?')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">🎯 What did you find?</button>
-              <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Focus our attack hunt on user inventory and trade requests.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">⚡ Focus on inventory &amp; trade</button>
-              <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Explain why the last endpoint was refuted safe.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">🛡️ Why was /graphql/api safe?</button>
-              <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Draft a HackenProof bug bounty report for WhiteMarket.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">📝 Draft HackenProof report</button>
+              <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('What did you find on our target so far?')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">🎯 What did you find?</button>
+              <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Focus our attack hunt on sensitive user endpoints, profile, and authorization checks.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">⚡ Focus on private resources</button>
+              <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Explain why the last endpoint was refuted safe.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">🛡️ Why was the last endpoint safe?</button>
+              <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Draft a HackenProof bug bounty report for this finding.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">📝 Draft Bug Bounty report</button>
               <button type="button" class="btn btn-outline" onclick="sendQuickPrompt('Set attacker mode to Anonymous Guest to test for missing authentication.')" style="padding: 4px 10px; font-size: 11px; border-radius: 999px;">🚀 Test as Guest</button>
             </div>
 
@@ -2009,7 +2009,7 @@
               <div style="display: flex; gap: 10px; align-items: flex-start;">
                 <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">A</div>
                 <div style="background: #fff; border: 1px solid var(--line); padding: 10px 14px; border-radius: 0 10px 10px 10px; font-size: 12.5px; line-height: 1.5; color: var(--ink); max-width: 90%; box-shadow: var(--shadow-sm);">
-                  👋 <strong>I am your Ashborn Shadow Co-Pilot.</strong> I am actively linked into your live test session on <code style="color: var(--accent);">white.market</code>.<br><br>
+                  👋 <strong>I am your Ashborn Shadow Co-Pilot.</strong> Linked live into your active hunt session.<br><br>
                   You can give me instructions, tell me which endpoints to prioritize, ask why an endpoint was safe, or type <em>"Draft HackenProof report"</em>. Click a chip above or type below!
                 </div>
               </div>
@@ -2071,7 +2071,7 @@
       <div style="display: flex; gap: 10px; align-items: flex-start;">
         <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">A</div>
         <div style="background: #fff; border: 1px solid var(--line); padding: 10px 14px; border-radius: 0 10px 10px 10px; font-size: 12.5px; line-height: 1.5; color: var(--ink); box-shadow: var(--shadow-sm);">
-          👋 <strong>I am your Ashborn Shadow Co-Pilot.</strong> Linked live into your hunt session on <code style="color: var(--accent);">white.market</code>.<br><br>
+          👋 <strong>I am your Ashborn Shadow Co-Pilot.</strong> Linked live into your active hunt session.<br><br>
           Give me tactical instructions, tell me which endpoints to prioritize, or ask me to draft a HackenProof bug report!
         </div>
       </div>
@@ -2080,10 +2080,10 @@
     <!-- Drawer Footer: Pavilion Action Chips & Rounded Input Pill -->
     <div class="copilot-drawer-footer">
       <div class="copilot-action-chips">
-        <button type="button" class="copilot-action-chip" onclick="sendQuickPrompt('What did you find on white.market so far?')">🎯 What did you find?</button>
-        <button type="button" class="copilot-action-chip" onclick="sendQuickPrompt('Focus our attack hunt on user inventory and trade requests.')">⚡ Focus on inventory &amp; trade</button>
-        <button type="button" class="copilot-action-chip" onclick="sendQuickPrompt('Explain why the last endpoint was refuted safe.')">🛡️ Why was /graphql safe?</button>
-        <button type="button" class="copilot-action-chip" onclick="sendQuickPrompt('Draft a HackenProof bug bounty report for WhiteMarket.')">📝 Draft HackenProof report</button>
+        <button type="button" class="copilot-action-chip" onclick="sendQuickPrompt('What did you find on our target so far?')">🎯 What did you find?</button>
+        <button type="button" class="copilot-action-chip" onclick="sendQuickPrompt('Focus our attack hunt on sensitive user endpoints, profile, and authorization checks.')">⚡ Focus on private resources</button>
+        <button type="button" class="copilot-action-chip" onclick="sendQuickPrompt('Explain why the last endpoint was refuted safe.')">🛡️ Why was the last endpoint safe?</button>
+        <button type="button" class="copilot-action-chip" onclick="sendQuickPrompt('Draft a HackenProof bug bounty report for this finding.')">📝 Draft Bug Bounty report</button>
         <button type="button" class="copilot-action-chip" onclick="sendQuickPrompt('Set attacker mode to Anonymous Guest to test for missing authentication.')">🚀 Test as Guest</button>
       </div>
 
@@ -2145,6 +2145,13 @@
       }
       pollAutopilotStatus();
       loadCopilotSettings();
+      try {
+        const savedTarget = localStorage.getItem('ashborn_target_url');
+        if (savedTarget) {
+          const autoInput = document.getElementById('autopilot-launch-url');
+          if (autoInput) autoInput.value = savedTarget;
+        }
+      } catch {}
     });
 
     function switchView(viewName) {
@@ -2296,7 +2303,20 @@
     async function launchAutopilotChrome() {
       showAutopilotError('');
       showAutopilotStatus('🚀 Spawning Chrome with remote debugging on port 9222...');
-      const targetUrl = document.getElementById('autopilot-launch-url').value.trim() || 'https://white.market';
+      const inputEl = document.getElementById('autopilot-launch-url');
+      let targetUrl = inputEl ? inputEl.value.trim() : '';
+      if (!targetUrl) {
+        targetUrl = prompt('Enter the target URL to test in Chrome (e.g. https://target.com):', 'https://');
+        if (targetUrl && inputEl) inputEl.value = targetUrl;
+      }
+      if (!targetUrl || targetUrl === 'https://') {
+        showAutopilotError('Please enter a target URL first.');
+        return;
+      }
+      try {
+        localStorage.setItem('ashborn_target_url', targetUrl);
+      } catch {}
+
       const launchBtn = document.getElementById('autopilot-launch-btn');
       if (launchBtn) launchBtn.textContent = 'Launching...';
       try {
@@ -2309,11 +2329,12 @@
         if (!res.ok || data.error) throw new Error(data.error || 'Failed to launch Chrome');
         await refreshAutopilotTabs();
 
+        const targetHost = (function() { try { return new URL(targetUrl).hostname; } catch { return targetUrl; } })();
         // Auto-connect to victim tab immediately so the user gets live streaming without extra steps
         const victimSelect = document.getElementById('autopilot-victim-tab');
         if (victimSelect && victimSelect.value) {
           await connectAutopilot();
-          showAutopilotStatus('🟢 Chrome Connected & Live! Switch to the Chrome window on your screen, log into white.market, and browse around. Ashborn is listening and testing traffic live in the background!');
+          showAutopilotStatus(`🟢 Chrome Connected & Live! Switch to the Chrome window on your screen, browse ${targetHost}, and Ashborn will audit traffic in real time.`);
         } else {
           showAutopilotStatus('🟢 Chrome launched! Select your tab above and click "Start Auto-Pilot".');
         }
@@ -2377,9 +2398,16 @@
       }
     }
 
+    function saveTargetSettings() {
+      const inputEl = document.getElementById('autopilot-launch-url');
+      if (inputEl && inputEl.value.trim()) {
+        try { localStorage.setItem('ashborn_target_url', inputEl.value.trim()); } catch {}
+      }
+    }
+
     async function openNewTabForAccountB() {
       showAutopilotError('');
-      const targetUrl = document.getElementById('autopilot-launch-url').value.trim() || 'https://white.market';
+      const targetUrl = (document.getElementById('autopilot-launch-url') ? document.getElementById('autopilot-launch-url').value.trim() : '') || 'about:blank';
       try {
         const res = await autopilotFetch('/api/autopilot/open-tab', {
           method: 'POST',
@@ -2946,7 +2974,7 @@
         <div style="display: flex; gap: 10px; align-items: flex-start;">
           <div style="width: 28px; height: 28px; border-radius: 6px; background: var(--ink); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0;">A</div>
           <div style="background: #fff; border: 1px solid var(--line); padding: 10px 14px; border-radius: 0 10px 10px 10px; font-size: 12.5px; line-height: 1.5; color: var(--ink); box-shadow: var(--shadow-sm);">
-            👋 <strong>I am your Ashborn Shadow Co-Pilot.</strong> Linked live into your hunt session on <code style="color: var(--accent);">white.market</code>.<br><br>
+            👋 <strong>I am your Ashborn Shadow Co-Pilot.</strong> Linked live into your active hunt session.<br><br>
             Give me tactical instructions, tell me which endpoints to prioritize, or ask me to draft a HackenProof bug report!
           </div>
         </div>

@@ -338,7 +338,7 @@ export class CdpScout {
  * using an isolated profile directory so it works cleanly alongside existing browser windows.
  */
 export async function launchDebugChrome(
-  targetUrl = 'https://white.market',
+  targetUrl = 'about:blank',
   port = 9222
 ): Promise<{ launched: boolean; alreadyRunning: boolean; cdpHttpUrl: string; browserPath?: string; profileDir: string }> {
   const cdpHttpUrl = `http://127.0.0.1:${port}`;
